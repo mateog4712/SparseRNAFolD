@@ -102,7 +102,7 @@ private:
     paramT *params_;
 
     std::string structure_;
-    TraceArrows ta_;
+    
 
     bool garbage_collect_;
 
@@ -114,6 +114,7 @@ private:
     bool mark_candidates_;
 
 public:
+	TraceArrows ta_;
     typedef unsigned short int cand_pos_t;
     typedef std::pair<cand_pos_t,energy_t> cand_entry_t;
     typedef std::vector< cand_entry_t > cand_list_t;
@@ -732,12 +733,14 @@ public:
 	return c;
     }
 
-    const TraceArrows &
-    ta() const {
-	return ta_;
-    }
+    
 
 };
+const TraceArrows &
+    ta(SparseMFEFold &fold){
+	return fold.ta_;
+    }
+
 
 /**
  * @brief Simple driver for @see SparseMFEFold.
@@ -805,17 +808,20 @@ main(int argc,char **argv) {
 
 	std::cout <<std::endl;
 
-	std::cout << "TA cnt:\t"<<sparsemfefold.ta().size()<<std::endl;
-	std::cout << "TA max:\t"<<sparsemfefold.ta().max()<<std::endl;
-	std::cout << "TA av:\t"<<sparsemfefold.ta().avoided()<<std::endl;
-	std::cout << "TA rm:\t"<<sparsemfefold.ta().erased()<<std::endl;
+	std::cout << "TA cnt:\t"<<ta(sparsemfefold).size()<<std::endl;
+	std::cout << "TA max:\t"<<ta(sparsemfefold).max()<<std::endl;
+	std::cout << "TA av:\t"<<ta(sparsemfefold).avoided()<<std::endl;
+	std::cout << "TA rm:\t"<<ta(sparsemfefold).erased()<<std::endl;
 
 	std::cout <<std::endl;
 	std::cout << "Can num:\t"<<sparsemfefold.num_of_candidates()<<std::endl;
 	std::cout << "Can cap:\t"<<sparsemfefold.capacity_of_candidates()<<std::endl;
-	std::cout << "TAs num:\t"<<sparsemfefold.ta().size()<<std::endl;
-	std::cout << "TAs cap:\t"<<sparsemfefold.ta().capacity()<<std::endl;
+	std::cout << "TAs num:\t"<<ta(sparsemfefold).size()<<std::endl;
+	std::cout << "TAs cap:\t"<<ta(sparsemfefold).capacity()<<std::endl;
     }
 
     return 0;
 }
+
+ // ./configure --prefix=/home/hiseric1/Programs/SparseMFEF PKG_CONFIG_PATH=/home/hiseric1/Desktop/DMproject/ViennaRNA-2.4.14 CPPFLAGS=-I/home/hiseric1/Programs/Vienna
+

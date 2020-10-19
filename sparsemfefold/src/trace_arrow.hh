@@ -59,16 +59,16 @@ class TraceArrows {
 public:
     typedef SimpleMap< size_t, TraceArrow >       trace_arrow_row_map_t;
     typedef std::vector< trace_arrow_row_map_t >  trace_arrow_map_t;
-
-private:
     trace_arrow_map_t trace_arrow_;
-
     size_t n_; //!< sequence length
 
     size_t ta_count_; // count all generated tas
     size_t ta_avoid_; // count all avoided tas (since they point to candidates)
     size_t ta_erase_; // count all erased tas (in gc)
     size_t ta_max_; // keep track of maximum number of tas, existing simultaneously
+
+private:
+
 
 public:
 
@@ -200,15 +200,14 @@ public:
     /** @brief Capacity of trace arrows vectors
      * @return capacity
      */
-    size_t
-    capacity() const;
-
-    size_t size() const {return ta_count_;}
-    size_t erased() const {return ta_erase_;}
-    size_t avoided() const {return ta_avoid_;}
-    size_t max() const {return ta_max_;}
+    size_t capacity() const;
 
 };
+size_t sizeT(TraceArrows &t);
+size_t erasedT(TraceArrows &t);
+size_t avoidedT(TraceArrows &t);
+size_t maxT(TraceArrows &t);
+// size_t capacityTA(TraceArrows &t);
 
 
 

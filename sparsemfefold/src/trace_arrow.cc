@@ -76,3 +76,24 @@ TraceArrows::capacity() const {
     }
     return c;
 }
+size_t erasedT(TraceArrows &t){
+    return t.ta_erase_;
+}
+size_t sizeT(TraceArrows &t){
+    return t.ta_count_;
+}
+size_t avoidedT(TraceArrows &t){
+    return t.ta_avoid_;
+}
+size_t maxT(TraceArrows &t){
+    return t.ta_max_;
+}
+
+// size_t capacityTA(TraceArrows &t){
+//     size_t c=0;
+//     for ( auto &x: t.trace_arrow_ ) {
+// 	c += 1;
+//     capacityTA(x);
+//     }
+//     return c;
+// }

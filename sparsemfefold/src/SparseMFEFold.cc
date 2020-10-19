@@ -721,8 +721,7 @@ return fold.W_[fold.n_];
 
 
 
-size_t
-num_of_candidates(SparseMFEFold &fold)  {
+size_t num_of_candidates(SparseMFEFold &fold)  {
 	size_t c=0;
 	for ( auto &x: fold.CL_ ) {
 		c += x.size();
@@ -730,13 +729,11 @@ num_of_candidates(SparseMFEFold &fold)  {
 	return c;
 }
 
-const TraceArrows &
-    ta(SparseMFEFold &fold){
+TraceArrows & ta(SparseMFEFold &fold){
 	return fold.ta_;
     }
 
-size_t
-capacity_of_candidates(SparseMFEFold &fold) {
+size_t capacity_of_candidates(SparseMFEFold &fold) {
 	size_t c=0;
 	for ( auto &x: fold.CL_ ) {
 		c += x.capacity();
@@ -797,28 +794,20 @@ main(int argc,char **argv) {
     const std::string unit=" kB";
 
     if (verbose) {
-	// std::cout << "[Unsp:\t"<< 2* n*(n+1)/2 * sizeof(int)/factor<<unit<<"]"<<std::endl;
-	// std::cout << "W:\t"<<n*sizeof(energy_t)/factor<<unit<<std::endl;
-	// std::cout << "V:\t"<<n*sizeof(energy_t)*MAXLOOP/factor<<unit<<std::endl;
-	// std::cout << "Cands:\t"<<sparsemfefold.num_of_candidates()*sizeof(SparseMFEFold::cand_entry_t)/factor<<unit<<std::endl;
-	// //std::cout << "TAs:\t"<<sparsemfefold.ta_count()*sizeof(TraceArrow)/factor<<unit<<"; size of ta="<<sizeof(TraceArrow)<<std::endl;
-
-	// std::cout << "TAs+ov:\t"<<sparsemfefold.ta().size()*(sizeof(TraceArrow)+8)/factor<<unit<<"; size of ta="<<sizeof(TraceArrow)<<std::endl;
-
-	// // trace arrows with overhead of maps
-	// // std::cout << "TAs+map ov:\t"<<(n*48+sparsemfefold.ta_count()*(32+sizeof(size_t)+sizeof(TraceArrow)))/factor<<unit<<"; size of ta="<<sizeof(TraceArrow)<<std::endl;
+		
 
 	std::cout <<std::endl;
 
-	std::cout << "TA cnt:\t"<<ta(sparsemfefold).size()<<std::endl;
-	std::cout << "TA max:\t"<<ta(sparsemfefold).max()<<std::endl;
-	std::cout << "TA av:\t"<<ta(sparsemfefold).avoided()<<std::endl;
-	std::cout << "TA rm:\t"<<ta(sparsemfefold).erased()<<std::endl;
+	std::cout << "TA cnt:\t"<<sizeT(ta(sparsemfefold))<<std::endl;
+	std::cout << "TA max:\t"<<maxT(ta(sparsemfefold))<<std::endl;
+	std::cout << "TA av:\t"<<avoidedT(ta(sparsemfefold))<<std::endl;
+	std::cout << "TA rm:\t"<<erasedT(ta(sparsemfefold))<<std::endl;
+	// std::cout << "TA rm:\t"<<ta(sparsemfefold).erased()<<std::endl;
 
 	std::cout <<std::endl;
 	std::cout << "Can num:\t"<<num_of_candidates(sparsemfefold)<<std::endl;
 	std::cout << "Can cap:\t"<<capacity_of_candidates(sparsemfefold)<<std::endl;
-	std::cout << "TAs num:\t"<<ta(sparsemfefold).size()<<std::endl;
+	std::cout << "TAs num:\t"<<sizeT(ta(sparsemfefold))<<std::endl;
 	std::cout << "TAs cap:\t"<<ta(sparsemfefold).capacity()<<std::endl;
     }
 

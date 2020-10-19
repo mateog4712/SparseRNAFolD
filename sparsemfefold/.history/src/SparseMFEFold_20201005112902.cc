@@ -84,9 +84,7 @@ extern "C" {
 
 #include "SparseMFEFold_cmdline.h"
 
-typedef unsigned short int cand_pos_t;
-typedef std::pair<cand_pos_t,energy_t> cand_entry_t;
-typedef std::vector< cand_entry_t > cand_list_t;
+
 /**
  * Space efficient sparsification of Zuker-type RNA folding with
  * trace-back. Provides methods for the evaluation of dynamic
@@ -94,7 +92,8 @@ typedef std::vector< cand_entry_t > cand_list_t;
  */
 class SparseMFEFold {
 
-public:
+private:
+
     std::string seq_;
     size_t n_;
 
@@ -114,11 +113,13 @@ public:
 
     bool mark_candidates_;
 
-
+public:
 	TraceArrows ta_;
-    
-	std::vector< cand_list_t > CL_;
+    typedef unsigned short int cand_pos_t;
+    typedef std::pair<cand_pos_t,energy_t> cand_entry_t;
+    typedef std::vector< cand_entry_t > cand_list_t;
 
+private:
     /**
        candidate list for decomposition in W or WM
 
@@ -127,7 +128,7 @@ public:
        reformulating the recursions such that both split-cases recurse to
        V-entries. (compare OCTs)
     */
-    
+    std::vector< cand_list_t > CL_;
 
     // compare candidate list entries by keys (left index i) in descending order
     struct {
@@ -154,7 +155,7 @@ public:
 	return it!=list.end() && it->first==i;
     }
 
-
+public:
     SparseMFEFold(const std::string &seq, bool garbage_collect)
 	: seq_(seq),
 	  n_(seq.length()),
@@ -204,6 +205,7 @@ public:
 	free(S1_);
     }
 
+private:
     int
     pair_type(size_t i, size_t j) const {
 	return pair[S_[i]][S_[j]];
@@ -542,207 +544,203 @@ public:
 	CL_[j].push_back( cand_entry_t(i, e) );
     }
 
+public:
+
     /* recursion evaluation (forward, sparse) */
-    
+    energy_t
+    fold() {
+    	for (size_t i=n_; i>0; --i) {
+	    energy_t WM2_ip1_jm1 = INF;
+	    for ( size_t j=i+TURN+1; j<=n_; j++ ) {
+
+		// ------------------------------
+		// W: split case
+		energy_t w_split = INF;
+		for ( auto &x : CL_[j] ) {
+		    size_t k=x.first;
+		    energy_t v_kj =
+			x.second
+			+ E_ExtLoop(pair_type(k,j),-1,-1,params_);
+		    w_split = std::min( w_split, W_[k-1] + v_kj );
+		}
+		w_split = std::min(w_split,W_[j-1]);
+
+		// ------------------------------
+		// WM and WM2: split cases
+		energy_t wm_split = INF;
+		energy_t wm2_split = INF;
+		for ( auto &x : CL_[j] ) {
+		    size_t k = x.first;
+		    energy_t v_kj =
+			x.second
+			+ E_MLstem(pair_type(k,j),-1,-1,params_);
+
+		    wm_split = std::min( wm_split, WM_[k-1] + v_kj );
+		    wm_split = std::min( wm_split,
+					 static_cast<energy_t>((k-i)*params_->MLbase) + v_kj );
+
+		    wm2_split = std::min( wm2_split, WM_[k-1] + v_kj );
+		}
+
+		wm2_split = std::min( wm2_split, WM2_[j-1] + params_->MLbase );
+		wm_split = std::min( wm_split, WM_[j-1] + params_->MLbase );
+
+		energy_t w  = w_split; // entry of W w/o contribution of V
+		energy_t wm = wm_split; // entry of WM w/o contribution of V
+
+
+		size_t i_mod=i%(MAXLOOP+1);
+
+		int ptype_closing = pair_type(i,j);
+
+		// ----------------------------------------
+		// cases with base pair (i,j)
+		if(ptype_closing>0) { // if i,j form a canonical base pair
+
+		    energy_t v_h = HairpinE(i,j);
+
+		    // info of best interior loop decomposition (if better than hairpin)
+		    size_t best_l=0;
+		    size_t best_k=0;
+		    energy_t best_e;
+
+		    energy_t v_iloop=INF;
+
+		    // constraints for interior loops
+		    // i<k; l<j
+		    // k-i+j-l-2<=MAXLOOP  ==> k <= MAXLOOP+i+1
+		    //            ==> l >= k+j-i-MAXLOOP-2
+		    // l-k>=TURN+1         ==> k <= j-TURN-2
+		    //            ==> l >= k+TURN+1
+		    // j-i>=TURN+3
+		    //
+		    size_t max_k = std::min(j-TURN-2,i+MAXLOOP+1);
+		    for ( size_t k=i+1; k<=max_k; k++) {
+			size_t k_mod=k%(MAXLOOP+1);
+
+			size_t min_l=std::max(k+TURN+1 + MAXLOOP+2, k+j-i) - MAXLOOP-2;
+
+			for (size_t l=min_l; l<j; l++) {
+
+			    assert(k-i+j-l-2<=MAXLOOP);
+
+			    energy_t v_iloop_kl =
+				V_(k_mod,l)
+				+ ILoopE(ptype_closing,i,j,k,l);
+
+			    if ( v_iloop_kl < v_iloop ) {
+				v_iloop = v_iloop_kl;
+				best_l=l;
+				best_k=k;
+				best_e=V_(k_mod,l);
+			    }
+			}
+		    }
+
+		    energy_t v_split =
+			WM2_ip1_jm1 // this value, conceptually
+				    // WM2(i+1,j-1), is set in the
+				    // previous j-iteration before this
+				    // value in array WM2_[] is overwritten
+			+ E_MLstem(rtype[ptype_closing],-1,-1,params_)
+			+ params_->MLclosing;
+
+		    energy_t v = std::min(v_h,std::min(v_iloop,v_split));
+
+		    energy_t w_v  = v + E_ExtLoop(ptype_closing,-1,-1,params_);
+		    energy_t wm_v = v + E_MLstem(ptype_closing,-1,-1,params_);
+
+		    // update w and wm by v
+		    w  = std::min(w_v, w_split);
+		    wm = std::min(wm_v, wm_split);
+
+		    // register required trace arrows from (i,j)
+		    if ( v_iloop < std::min(v_h,v_split) ) {
+			if ( is_candidate(best_k,best_l) ) {
+			    //std::cout << "Avoid TA "<<best_k<<" "<<best_l<<std::endl;
+			    ta_.avoid_trace_arrow();
+			} else {
+			    //std::cout<<"Reg TA "<<i<<","<<j<<":"<<best_k<<","<<best_l<<std::endl;
+			    ta_.register_trace_arrow(i,j,best_k,best_l,best_e);
+			}
+		    }
+
+		    // check whether (i,j) is a candidate; then register
+		    if ( w_v < w_split
+			 ||
+			 wm_v < wm_split ) {
+
+			//std::cout << "Reg Cand "<<i<<","<<j<<std::endl;
+
+			register_candidate( i, j, v );
+
+			// always keep arrows starting from candidates
+			ta_.inc_source_ref_count(i,j);
+		    }
+
+		    V_(i_mod,j) = v;
+
+		} else {
+		    V_(i_mod,j) = INF;
+		} // end if (i,j form a canonical base pair)
+
+		W_[j]       = w;
+		WM_[j]      = wm;
+
+		WM2_ip1_jm1 = WM2_[j]; // here, the array WM2_ still
+				       // contains WM2(i+1,j-1); in
+				       // the next j-iteration, we
+				       // need this.
+		WM2_[j]     = wm2_split;
+
+	    } // end loop j
+
+	    // Clean up trace arrows in i+MAXLOOP+1
+	    if ( garbage_collect_ && i+MAXLOOP+1 <= n_) {
+		ta_.gc_row( i + MAXLOOP + 1 );
+	    }
+
+	    // Reallocate candidate lists in i
+	    for ( auto &x: CL_ ) {
+		if (x.capacity() > 1.5*x.size()) {
+		    cand_list_t vec(x.size());
+		    copy(x.begin(),x.end(),vec.begin());
+		    vec.swap(x);
+		}
+	    }
+
+	    ta_.compactify();
+	}
+
+	return W_[n_];
+    }
+
+    size_t
+    num_of_candidates() const {
+	size_t c=0;
+	for ( auto &x: CL_ ) {
+	    c += x.size();
+	}
+	return c;
+    }
+
+    size_t
+    capacity_of_candidates() const {
+	size_t c=0;
+	for ( auto &x: CL_ ) {
+	    c += x.capacity();
+	}
+	return c;
+    }
+
     
 
 };
-
-
-
-energy_t fold(SparseMFEFold &fold) {
-	for (size_t i=fold.n_; i>0; --i) {
-	energy_t WM2_ip1_jm1 = INF;
-	for ( size_t j=i+TURN+1; j<=fold.n_; j++ ) {
-
-	// ------------------------------
-	// W: split case
-	energy_t w_split = INF;
-	for ( auto &x : fold.CL_[j] ) {
-		size_t k=x.first;
-		energy_t v_kj =
-		x.second
-		+ E_ExtLoop(fold.pair_type(k,j),-1,-1,fold.params_);
-		w_split = std::min( w_split, fold.W_[k-1] + v_kj );
-	}
-	w_split = std::min(w_split,fold.W_[j-1]);
-
-	// ------------------------------
-	// WM and WM2: split cases
-	energy_t wm_split = INF;
-	energy_t wm2_split = INF;
-	for ( auto &x : fold.CL_[j] ) {
-		size_t k = x.first;
-		energy_t v_kj =
-		x.second
-		+ E_MLstem(fold.pair_type(k,j),-1,-1,fold.params_);
-
-		wm_split = std::min( wm_split, fold.WM_[k-1] + v_kj );
-		wm_split = std::min( wm_split,
-					static_cast<energy_t>((k-i)*fold.params_->MLbase) + v_kj );
-
-		wm2_split = std::min( wm2_split, fold.WM_[k-1] + v_kj );
-	}
-
-	wm2_split = std::min( wm2_split, fold.WM2_[j-1] + fold.params_->MLbase );
-	wm_split = std::min( wm_split, fold.WM_[j-1] + fold.params_->MLbase );
-
-	energy_t w  = w_split; // entry of W w/o contribution of V
-	energy_t wm = wm_split; // entry of WM w/o contribution of V
-
-
-	size_t i_mod=i%(MAXLOOP+1);
-
-	int ptype_closing = fold.pair_type(i,j);
-
-	// ----------------------------------------
-	// cases with base pair (i,j)
-	if(ptype_closing>0) { // if i,j form a canonical base pair
-
-		energy_t v_h = fold.HairpinE(i,j);
-
-		// info of best interior loop decomposition (if better than hairpin)
-		size_t best_l=0;
-		size_t best_k=0;
-		energy_t best_e;
-
-		energy_t v_iloop=INF;
-
-		// constraints for interior loops
-		// i<k; l<j
-		// k-i+j-l-2<=MAXLOOP  ==> k <= MAXLOOP+i+1
-		//            ==> l >= k+j-i-MAXLOOP-2
-		// l-k>=TURN+1         ==> k <= j-TURN-2
-		//            ==> l >= k+TURN+1
-		// j-i>=TURN+3
-		//
-		size_t max_k = std::min(j-TURN-2,i+MAXLOOP+1);
-		for ( size_t k=i+1; k<=max_k; k++) {
-		size_t k_mod=k%(MAXLOOP+1);
-
-		size_t min_l=std::max(k+TURN+1 + MAXLOOP+2, k+j-i) - MAXLOOP-2;
-
-		for (size_t l=min_l; l<j; l++) {
-
-			assert(k-i+j-l-2<=MAXLOOP);
-
-			energy_t v_iloop_kl =
-			fold.V_(k_mod,l)
-			+ fold.ILoopE(ptype_closing,i,j,k,l);
-
-			if ( v_iloop_kl < v_iloop ) {
-			v_iloop = v_iloop_kl;
-			best_l=l;
-			best_k=k;
-			best_e=fold.V_(k_mod,l);
-			}
-		}
-		}
-
-		energy_t v_split =
-		WM2_ip1_jm1 // this value, conceptually
-				// WM2(i+1,j-1), is set in the
-				// previous j-iteration before this
-				// value in array WM2_[] is overwritten
-		+ E_MLstem(rtype[ptype_closing],-1,-1,fold.params_)
-		+ fold.params_->MLclosing;
-
-		energy_t v = std::min(v_h,std::min(v_iloop,v_split));
-
-		energy_t w_v  = v + E_ExtLoop(ptype_closing,-1,-1,fold.params_);
-		energy_t wm_v = v + E_MLstem(ptype_closing,-1,-1,fold.params_);
-
-		// update w and wm by v
-		w  = std::min(w_v, w_split);
-		wm = std::min(wm_v, wm_split);
-
-		// register required trace arrows from (i,j)
-		if ( v_iloop < std::min(v_h,v_split) ) {
-		if ( fold.is_candidate(best_k,best_l) ) {
-			//std::cout << "Avoid TA "<<best_k<<" "<<best_l<<std::endl;
-			fold.ta_.avoid_trace_arrow();
-		} else {
-			//std::cout<<"Reg TA "<<i<<","<<j<<":"<<best_k<<","<<best_l<<std::endl;
-			fold.ta_.register_trace_arrow(i,j,best_k,best_l,best_e);
-		}
-		}
-
-		// check whether (i,j) is a candidate; then register
-		if ( w_v < w_split
-			||
-			wm_v < wm_split ) {
-
-		//std::cout << "Reg Cand "<<i<<","<<j<<std::endl;
-
-		fold.register_candidate( i, j, v );
-
-		// always keep arrows starting from candidates
-		fold.ta_.inc_source_ref_count(i,j);
-		}
-
-		fold.V_(i_mod,j) = v;
-
-	} else {
-		fold.V_(i_mod,j) = INF;
-	} // end if (i,j form a canonical base pair)
-
-	fold.W_[j]       = w;
-	fold.WM_[j]      = wm;
-
-	WM2_ip1_jm1 = fold.WM2_[j]; // here, the array WM2_ still
-					// contains WM2(i+1,j-1); in
-					// the next j-iteration, we
-					// need this.
-	fold.WM2_[j]     = wm2_split;
-
-	} // end loop j
-
-	// Clean up trace arrows in i+MAXLOOP+1
-	if ( fold.garbage_collect_ && i+MAXLOOP+1 <= fold.n_) {
-	fold.ta_.gc_row( i + MAXLOOP + 1 );
-	}
-
-	// Reallocate candidate lists in i
-	for ( auto &x: fold.CL_ ) {
-	if (x.capacity() > 1.5*x.size()) {
-		cand_list_t vec(x.size());
-		copy(x.begin(),x.end(),vec.begin());
-		vec.swap(x);
-	}
-	}
-
-	fold.ta_.compactify();
-}
-
-return fold.W_[fold.n_];
-}
-
-
-
-
-
-size_t
-num_of_candidates(SparseMFEFold &fold)  {
-	size_t c=0;
-	for ( auto &x: fold.CL_ ) {
-		c += x.size();
-	}
-	return c;
-}
-
 const TraceArrows &
     ta(SparseMFEFold &fold){
 	return fold.ta_;
     }
 
-size_t
-capacity_of_candidates(SparseMFEFold &fold) {
-	size_t c=0;
-	for ( auto &x: fold.CL_ ) {
-		c += x.capacity();
-	}
-	return c;
-}
 
 /**
  * @brief Simple driver for @see SparseMFEFold.
@@ -782,7 +780,7 @@ main(int argc,char **argv) {
     std::cout << seq << std::endl;
     //std::cout << "Len:\t"<<seq.length()<<std::endl<<std::endl;
 
-    energy_t mfe = fold(sparsemfefold);
+    energy_t mfe = sparsemfefold.fold();
 
     std::string structure = sparsemfefold.trace_back(mark_candidates);
 
@@ -816,11 +814,14 @@ main(int argc,char **argv) {
 	std::cout << "TA rm:\t"<<ta(sparsemfefold).erased()<<std::endl;
 
 	std::cout <<std::endl;
-	std::cout << "Can num:\t"<<num_of_candidates(sparsemfefold)<<std::endl;
-	std::cout << "Can cap:\t"<<capacity_of_candidates(sparsemfefold)<<std::endl;
+	std::cout << "Can num:\t"<<sparsemfefold.num_of_candidates()<<std::endl;
+	std::cout << "Can cap:\t"<<sparsemfefold.capacity_of_candidates()<<std::endl;
 	std::cout << "TAs num:\t"<<ta(sparsemfefold).size()<<std::endl;
 	std::cout << "TAs cap:\t"<<ta(sparsemfefold).capacity()<<std::endl;
     }
 
     return 0;
 }
+
+ // ./configure --prefix=/home/hiseric1/Programs/SparseMFEF PKG_CONFIG_PATH=/home/hiseric1/Desktop/DMproject/ViennaRNA-2.4.14 CPPFLAGS=-I/home/hiseric1/Programs/Vienna
+

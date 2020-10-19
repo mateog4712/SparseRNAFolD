@@ -84,9 +84,7 @@ extern "C" {
 
 #include "SparseMFEFold_cmdline.h"
 
-typedef unsigned short int cand_pos_t;
-typedef std::pair<cand_pos_t,energy_t> cand_entry_t;
-typedef std::vector< cand_entry_t > cand_list_t;
+
 /**
  * Space efficient sparsification of Zuker-type RNA folding with
  * trace-back. Provides methods for the evaluation of dynamic
@@ -116,7 +114,9 @@ public:
 
 
 	TraceArrows ta_;
-    
+    typedef unsigned short int cand_pos_t;
+    typedef std::pair<cand_pos_t,energy_t> cand_entry_t;
+    typedef std::vector< cand_entry_t > cand_list_t;
 	std::vector< cand_list_t > CL_;
 
     /**
@@ -711,10 +711,10 @@ energy_t fold(SparseMFEFold &fold) {
 	}
 	}
 
-	fold.ta_.compactify();
+	ta_.compactify();
 }
 
-return fold.W_[fold.n_];
+return W_[n_];
 }
 
 
@@ -816,7 +816,7 @@ main(int argc,char **argv) {
 	std::cout << "TA rm:\t"<<ta(sparsemfefold).erased()<<std::endl;
 
 	std::cout <<std::endl;
-	std::cout << "Can num:\t"<<num_of_candidates(sparsemfefold)<<std::endl;
+	std::cout << "Can num:\t"<<sparsemfefold.num_of_candidates()<<std::endl;
 	std::cout << "Can cap:\t"<<capacity_of_candidates(sparsemfefold)<<std::endl;
 	std::cout << "TAs num:\t"<<ta(sparsemfefold).size()<<std::endl;
 	std::cout << "TAs cap:\t"<<ta(sparsemfefold).capacity()<<std::endl;

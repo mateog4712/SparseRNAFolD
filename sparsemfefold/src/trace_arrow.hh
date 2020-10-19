@@ -188,26 +188,22 @@ public:
     /**
      * @brief Compactify heap space
      */
-    void
-    compactify();
-
-    /** @brief Number of trace arrows
-     * @return number
-     */
-    size_t
-    number() const;
-
-    /** @brief Capacity of trace arrows vectors
-     * @return capacity
-     */
-    size_t capacity() const;
+    void compactify();
 
 };
+/** @brief Number of trace arrows
+    * @return number
+    */
+size_t numberT(TraceArrows &t);
+
 size_t sizeT(TraceArrows &t);
 size_t erasedT(TraceArrows &t);
 size_t avoidedT(TraceArrows &t);
 size_t maxT(TraceArrows &t);
-// size_t capacityTA(TraceArrows &t);
+/** @brief Capacity of trace arrows vectors
+     * @return capacity
+     */
+size_t capacityT(TraceArrows &t);
 
 
 

@@ -50,8 +50,7 @@ TraceArrows::gc_row( size_t i ) {
     }
 }
 
-void
-TraceArrows::compactify() {
+void TraceArrows::compactify() {
     for ( auto &x: trace_arrow_ ) {
 	if (x.capacity() > 1.2 * x.size()) {
 	    x.reallocate();
@@ -59,19 +58,24 @@ TraceArrows::compactify() {
     }
 }
 
-size_t
-TraceArrows::number() const {
+size_t numberT(TraceArrows &t){
     size_t c=0;
-    for ( auto &x: trace_arrow_ ) {
+    for ( auto &x: t.trace_arrow_ ) {
 	c += x.size();
     }
-    return c;
+    return c; 
 }
 
-size_t
-TraceArrows::capacity() const {
+// size_t TraceArrows::capacity() const {
+//     size_t c=0;
+//     for ( auto &x: trace_arrow_ ) {
+// 	c += x.capacity();
+//     }
+//     return c;
+// }
+size_t capacityT(TraceArrows &t){
     size_t c=0;
-    for ( auto &x: trace_arrow_ ) {
+    for ( auto &x: t.trace_arrow_ ) {
 	c += x.capacity();
     }
     return c;
@@ -88,12 +92,3 @@ size_t avoidedT(TraceArrows &t){
 size_t maxT(TraceArrows &t){
     return t.ta_max_;
 }
-
-// size_t capacityTA(TraceArrows &t){
-//     size_t c=0;
-//     for ( auto &x: t.trace_arrow_ ) {
-// 	c += 1;
-//     capacityTA(x);
-//     }
-//     return c;
-// }

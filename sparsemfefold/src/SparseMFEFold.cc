@@ -808,7 +808,8 @@ main(int argc,char **argv) {
 	std::cout << "Can num:\t"<<num_of_candidates(sparsemfefold)<<std::endl;
 	std::cout << "Can cap:\t"<<capacity_of_candidates(sparsemfefold)<<std::endl;
 	std::cout << "TAs num:\t"<<sizeT(ta(sparsemfefold))<<std::endl;
-	std::cout << "TAs cap:\t"<<ta(sparsemfefold).capacity()<<std::endl;
+	// std::cout << "TAs cap:\t"<<ta(sparsemfefold).capacity()<<std::endl;
+	std::cout << "TAs cap:\t"<<capacityT(ta(sparsemfefold))<<std::endl;
     }
 
     return 0;

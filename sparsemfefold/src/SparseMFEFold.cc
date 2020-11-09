@@ -420,9 +420,9 @@ public:
 
 	int ptype_closing = pair_type(i,j);
 
-	if (ta_.exists_trace_arrow_from(i,j)) {
+	if (exists_trace_arrow_from(ta_,i,j)) {
 	    // trace arrows may exist for interior loop case
-	    const TraceArrow &arrow = ta_.trace_arrow_from(i,j);
+	    const TraceArrow &arrow = trace_arrow_from(ta_,i,j);
 
 	    size_t k=arrow.k(i,j);
 	    size_t l=arrow.l(i,j);
@@ -660,10 +660,10 @@ energy_t fold(SparseMFEFold &fold) {
 		if ( v_iloop < std::min(v_h,v_split) ) {
 		if ( fold.is_candidate(best_k,best_l) ) {
 			//std::cout << "Avoid TA "<<best_k<<" "<<best_l<<std::endl;
-			fold.ta_.avoid_trace_arrow();
+			avoid_trace_arrow(fold.ta_);
 		} else {
 			//std::cout<<"Reg TA "<<i<<","<<j<<":"<<best_k<<","<<best_l<<std::endl;
-			fold.ta_.register_trace_arrow(i,j,best_k,best_l,best_e);
+			register_trace_arrow(fold.ta_,i,j,best_k,best_l,best_e);
 		}
 		}
 
@@ -677,7 +677,7 @@ energy_t fold(SparseMFEFold &fold) {
 		fold.register_candidate( i, j, v );
 
 		// always keep arrows starting from candidates
-		fold.ta_.inc_source_ref_count(i,j);
+		inc_source_ref_count(fold.ta_,i,j);
 		}
 
 		fold.V_(i_mod,j) = v;

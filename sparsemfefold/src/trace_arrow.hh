@@ -88,82 +88,64 @@ public:
 	return trace_arrow_[i].find(j)->second;
     }
 
-    /**
-     * Get target of trace arrow by source (non-const)
-     *
-     * @param i source row index
-     * @param j source column index
-     */
-    TraceArrow &
-    trace_arrow_from(size_t i, size_t j) {
-	return trace_arrow_[i].find(j)->second;
-    }
+    
 
-    /**
-     * Check existence of trace arrow by source
-     *
-     * @param i source row index
-     * @param j source column index
-     * @returns whether trace arrow exists
-     */
-    bool
-    exists_trace_arrow_from(size_t i, size_t j) const {
-	return trace_arrow_[i].exists(j);
-    }
-
-    /**
-     * Register trace arrow
-     *
-     * @param srctype source matrix type
-     * @param i source row
-     * @param j source column
-     * @param tgttype target matrix type
-     * @param k target row
-     * @param l target column
-     */
-    void
-    register_trace_arrow(size_t i, size_t j,
-			 size_t k, size_t l,
-			 energy_t e) {
-	// std::cout << "register_trace_arrow "<<i<<" "<<j<<" "<<k<<" "<<l<<std::endl;
-	trace_arrow_[i].push_ascending( j, TraceArrow(i,j,k,l,e) );
-
-	inc_source_ref_count(k,l);
-
-	ta_count_++;
-	ta_max_ = std::max(ta_max_,ta_count_);
-    }
-
-    /**
-     * avoid one trace arrow (for statistics only)
-     */
-    void
-    avoid_trace_arrow() {
-	ta_avoid_++;
-    }
-
-    /**
-     * Increment the reference count of the source
-     *
-     * @param i source row index
-     * @param j source column index
-     *
-     * If no trace arrow from source exists, do nothing
-     */
-    void
-    inc_source_ref_count(size_t i, size_t j) {
-	// get trace arrow from (i,j) if it exists
-	if (! trace_arrow_[i].exists(j)) return;
-
-	auto it=trace_arrow_[i].find(j);
-
-	TraceArrow &ta=it->second;
-
-	ta.inc_src();
-    }
+    
+    
 };
 
+
+/**
+* Get target of trace arrow by source (non-const)
+*
+* @param i source row index
+* @param j source column index
+*/
+TraceArrow & trace_arrow_from(TraceArrows &t, size_t i, size_t j);
+
+/**
+* Check existence of trace arrow by source
+*
+* @param i source row index
+* @param j source column index
+* @returns whether trace arrow exists
+*/
+bool exists_trace_arrow_from(TraceArrows &t,size_t i, size_t j);
+
+
+
+/**
+* avoid one trace arrow (for statistics only)
+*/
+void avoid_trace_arrow(TraceArrows &t);
+
+/**
+ * Increment the reference count of the source
+ *
+ * @param i source row index
+ * @param j source column index
+ *
+ * If no trace arrow from source exists, do nothing
+ */
+void inc_source_ref_count(TraceArrows &t, size_t i, size_t j);
+
+
+/**
+ * Register trace arrow
+ *
+ * @param srctype source matrix type
+ * @param i source row
+ * @param j source column
+ * @param tgttype target matrix type
+ * @param k target row
+ * @param l target column
+ */
+void register_trace_arrow(TraceArrows &t,size_t i, size_t j,size_t k, size_t l,energy_t e);
+
+
 void resize(TraceArrows &t,size_t n);
+
+
 /**
      * Garbage collect trace arrow
      *
@@ -173,10 +155,12 @@ void resize(TraceArrows &t,size_t n);
 void gc_trace_arrow(TraceArrows &t, size_t i, size_t j);
 
 void gc_row(TraceArrows &t, size_t i );
+
+
 /**
 * @brief Compactify heap space
 */
-    void compactify(TraceArrows &t);
+void compactify(TraceArrows &t);
 
 
 
@@ -189,9 +173,10 @@ size_t sizeT(TraceArrows &t);
 size_t erasedT(TraceArrows &t);
 size_t avoidedT(TraceArrows &t);
 size_t maxT(TraceArrows &t);
+
 /** @brief Capacity of trace arrows vectors
-     * @return capacity
-     */
+* @return capacity
+*/
 size_t capacityT(TraceArrows &t);
 
 

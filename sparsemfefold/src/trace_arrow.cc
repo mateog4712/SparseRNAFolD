@@ -9,6 +9,44 @@ TraceArrows::TraceArrows(size_t n)
       ta_max_(0)
 {}
 
+TraceArrow & trace_arrow_from(TraceArrows &t, size_t i, size_t j) {
+return t.trace_arrow_[i].find(j)->second;
+}
+
+bool exists_trace_arrow_from(TraceArrows &t,size_t i, size_t j){
+return t.trace_arrow_[i].exists(j);
+}
+
+
+void avoid_trace_arrow(TraceArrows &t){
+    t.ta_avoid_++;
+}
+
+
+
+void register_trace_arrow(TraceArrows &t,size_t i, size_t j,size_t k, size_t l,energy_t e) {
+// std::cout << "register_trace_arrow "<<i<<" "<<j<<" "<<k<<" "<<l<<std::endl;
+t.trace_arrow_[i].push_ascending( j, TraceArrow(i,j,k,l,e) );
+
+inc_source_ref_count(t,k,l);
+
+t.ta_count_++;
+t.ta_max_ = std::max(t.ta_max_,t.ta_count_);
+}
+
+
+void inc_source_ref_count(TraceArrows &t, size_t i, size_t j) {
+	// get trace arrow from (i,j) if it exists
+	if (! t.trace_arrow_[i].exists(j)) return;
+
+	auto it=t.trace_arrow_[i].find(j);
+
+	TraceArrow &ta=it->second;
+
+	ta.inc_src();
+}
+
+
 
 
 void resize(TraceArrows &t,size_t n) {
@@ -26,8 +64,8 @@ void gc_trace_arrow(TraceArrows &t, size_t i, size_t j) {
 
     if (ta.source_ref_count() == 0) {
 	// get trace arrow from the target if the arrow exists
-	if (t.exists_trace_arrow_from(ta.k(i,j),ta.l(i,j))) {
-	    auto &target_ta = t.trace_arrow_from(ta.k(i,j),ta.l(i,j));
+	if (exists_trace_arrow_from(t,ta.k(i,j),ta.l(i,j))) {
+	    auto &target_ta = trace_arrow_from(t,ta.k(i,j),ta.l(i,j));
 
 	    target_ta.dec_src();
 

@@ -11,5 +11,14 @@ autoconf (again)
 If gengetopt is not installed, run thus
 ./configure --prefix=/home/mgray7/includes/sparsemfe PKG_CONFIG_PATH=/home/mgray7/ViennaRNA-2.4.14 CPPFLAGS=-I/home/mgray7/includes/vienna
 
+then do export PATH=$PATH:/home/mgray7/includes/gengetopt/bin
+
+make 
+
+make install
 If it is, run this
 ./configure --prefix=/home/mgray7/Documents/includes/sparsemfe PKG_CONFIG_PATH=/home/mgray7/Documents/ViennaRNA
+
+make 
+
+make install

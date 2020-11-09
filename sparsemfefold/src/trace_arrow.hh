@@ -66,10 +66,6 @@ public:
     size_t ta_avoid_; // count all avoided tas (since they point to candidates)
     size_t ta_erase_; // count all erased tas (in gc)
     size_t ta_max_; // keep track of maximum number of tas, existing simultaneously
-
-private:
-
-
 public:
 
     /**
@@ -78,8 +74,8 @@ public:
      */
     TraceArrows(size_t n);
 
-    void
-    resize(size_t n);
+    // void
+    // resize(size_t n);
 
     /**
      * Get target of trace arrow by source (const)
@@ -165,35 +161,28 @@ public:
 
 	ta.inc_src();
     }
+};
 
-private:
-    /**
+void resize(TraceArrows &t,size_t n);
+/**
      * Garbage collect trace arrow
      *
      * if count = 0 then remove trace arrow; recursively decrement
      * targets and remove if count drops to 0
      */
-    void
-    gc_trace_arrow(size_t i, size_t j);
+void gc_trace_arrow(TraceArrows &t, size_t i, size_t j);
 
-public:
-    /**
-     * Garbage collect all trace arrows in given row
-     *
-     * @param i index of the row
-     */
-    void
-    gc_row( size_t i );
+void gc_row(TraceArrows &t, size_t i );
+/**
+* @brief Compactify heap space
+*/
+    void compactify(TraceArrows &t);
 
-    /**
-     * @brief Compactify heap space
-     */
-    void compactify();
 
-};
+
 /** @brief Number of trace arrows
-    * @return number
-    */
+* @return number
+*/
 size_t numberT(TraceArrows &t);
 
 size_t sizeT(TraceArrows &t);

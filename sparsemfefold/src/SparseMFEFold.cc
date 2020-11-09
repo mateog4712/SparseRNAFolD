@@ -177,7 +177,7 @@ public:
 	// init candidate lists
 	CL_.resize(n_+1);
 
-	ta_.resize(n_+1);
+	resize(ta_,n_+1);
     }
 
     /**
@@ -699,7 +699,7 @@ energy_t fold(SparseMFEFold &fold) {
 
 	// Clean up trace arrows in i+MAXLOOP+1
 	if ( fold.garbage_collect_ && i+MAXLOOP+1 <= fold.n_) {
-	fold.ta_.gc_row( i + MAXLOOP + 1 );
+	gc_row(fold.ta_,i + MAXLOOP + 1 );
 	}
 
 	// Reallocate candidate lists in i
@@ -711,7 +711,7 @@ energy_t fold(SparseMFEFold &fold) {
 	}
 	}
 
-	fold.ta_.compactify();
+	compactify(fold.ta_);
 }
 
 return fold.W_[fold.n_];

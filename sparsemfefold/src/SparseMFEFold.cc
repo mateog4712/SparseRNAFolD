@@ -191,6 +191,7 @@ public:
 
 
 
+
 // ! TRANSLATED: -----------------------------------------------------------------------------------
 
 energy_t HairpinE(SparseMFEFold &fold,size_t i, size_t j) {
@@ -199,18 +200,12 @@ energy_t HairpinE(SparseMFEFold &fold,size_t i, size_t j) {
 	assert(i<j);
 	//assert(j<=len); // don't know len here
 
-	int ptype_closing = pair_type(fold, i,j);
+	const int ptype_closing = pair_type(fold, i,j);
 
 	if (ptype_closing==0) return INF;
 
-	return
-	    E_Hairpin(j-i-1,
-		      ptype_closing,
-		      fold.S1_[i+1],
-		      fold.S1_[j-1],
-		      &fold.seq_.c_str()[i-1],
-		      const_cast<paramT *>(fold.params_));
-
+	return E_Hairpin(j-i-1,ptype_closing,fold.S1_[i+1],fold.S1_[j-1],&fold.seq_.c_str()[i-1],
+	const_cast<paramT *>(fold.params_));
     }
 /**
      * @brief Recompute row of W
@@ -228,9 +223,8 @@ energy_t HairpinE(SparseMFEFold &fold,size_t i, size_t j) {
 
 	    // note: the loop covers the case W(i,j)=V(i,j),
 	    // since this is in the candidate list (TBS)
-	    for ( auto it = fold.CL_[j].begin();
-		  fold.CL_[j].end()!=it && it->first>=i ; ++it ) {
-		w = std::min( w, fold.W_[it->first-1] + it->second );
+	    for ( auto it = fold.CL_[j].begin();fold.CL_[j].end()!=it && it->first>=i ; ++it ) {
+			w = std::min( w, fold.W_[it->first-1] + it->second );
 	    }
 	    // case "j unpaired" is not in the CL (anymore)
 	    w = std::min(w,fold.W_[j-1]);
@@ -255,13 +249,11 @@ energy_t HairpinE(SparseMFEFold &fold,size_t i, size_t j) {
 	for ( size_t j=i+TURN+1; j<=max_j; j++ ) {
 	    energy_t wm = INF;
 
-	    for ( auto it = fold.CL_[j].begin();
-		  fold.CL_[j].end()!=it && it->first>=i ; ++it ) {
-		size_t k = it->first;
-		energy_t v_kj =
-		    it->second + E_MLstem(pair_type(fold, k,j),-1,-1,fold.params_);
-		wm = std::min( wm, static_cast<energy_t>(fold.params_->MLbase*(k-i)) + v_kj );
-		wm = std::min( wm, fold.WM_[k-1]  + v_kj );
+	    for ( auto it = fold.CL_[j].begin();fold.CL_[j].end()!=it && it->first>=i ; ++it ) {
+			size_t k = it->first;
+			const energy_t v_kj = it->second + E_MLstem(pair_type(fold, k,j),-1,-1,fold.params_);
+			wm = std::min( wm, static_cast<energy_t>(fold.params_->MLbase*(k-i)) + v_kj );
+			wm = std::min( wm, fold.WM_[k-1]  + v_kj );
 	    }
 	    wm = std::min(wm, fold.WM_[j-1] + fold.params_->MLbase);
 
@@ -287,12 +279,11 @@ energy_t HairpinE(SparseMFEFold &fold,size_t i, size_t j) {
 	for ( size_t j=i+2*TURN+3; j<=max_j; j++ ) {
 	    energy_t wm2 = INF;
 
-	    for ( auto it = fold.CL_[j].begin();
-		  fold.CL_[j].end()!=it && it->first>i+TURN+1 ; ++it ) {
-		size_t k = it->first;
-		energy_t v_kl=
+	    for ( auto it = fold.CL_[j].begin();fold.CL_[j].end()!=it && it->first>i+TURN+1 ; ++it ) {
+			size_t k = it->first;
+			energy_t v_kl=
 		    it->second + E_MLstem(pair_type(fold, k,j),-1,-1,fold.params_);
-		wm2 = std::min( wm2, fold.WM_[k-1]  + v_kl );
+			wm2 = std::min( wm2, fold.WM_[k-1]  + v_kl );
 	    }
 	    wm2 = std::min(wm2, fold.WM2_[j-1] + fold.params_->MLbase);
 
@@ -334,9 +325,7 @@ energy_t HairpinE(SparseMFEFold &fold,size_t i, size_t j) {
 	    return;
 	}
 
-	for ( auto it=fold.CL_[j].begin();
-	      fold.CL_[j].end() != it  && it->first>=i+TURN+1;
-	      ++it ) {
+	for ( auto it=fold.CL_[j].begin();fold.CL_[j].end() != it  && it->first>=i+TURN+1;++it ) {
 	    size_t k = it->first;
 	    energy_t v_kj = it->second + E_MLstem(pair_type(fold,k,j),-1,-1,fold.params_);
 	    if ( e == fold.WM_[k-1] + v_kj ) {
@@ -379,9 +368,7 @@ energy_t HairpinE(SparseMFEFold &fold,size_t i, size_t j) {
 	    return;
 	}
 
-	for ( auto it=fold.CL_[j].begin();
-	      fold.CL_[j].end() != it && it->first>=i;
-	      ++it ) {
+	for ( auto it=fold.CL_[j].begin();fold.CL_[j].end() != it && it->first>=i;++it ) {
 	    size_t k = it->first;
 	    energy_t v_kj = it->second
 		+ E_MLstem(pair_type(fold,k,j),-1,-1,fold.params_);
@@ -482,9 +469,7 @@ energy_t HairpinE(SparseMFEFold &fold,size_t i, size_t j) {
 	energy_t v=INF;
 
 	// determine best split W -> W V
-	for ( auto it = fold.CL_[j].begin();
-	      fold.CL_[j].end()!=it && it->first>=i;
-	      ++it ) {
+	for ( auto it = fold.CL_[j].begin();fold.CL_[j].end()!=it && it->first>=i;++it ) {
 	    k = it->first;
 	    energy_t v_kj = it->second + E_ExtLoop(pair_type(fold, k,j),-1,-1,fold.params_);
 	    energy_t w = fold.W_[k-1] + v_kj;
@@ -533,182 +518,174 @@ energy_t ILoopE(SparseMFEFold &fold, int ptype_closing,size_t i, size_t j, size_
 
 
 /**
-     * @brief Register a candidate
-     * @param i start
-     * @param j end
-     * @param e energy of candidate "V(i,j)"
-     */
-    void register_candidate(SparseMFEFold &fold, size_t i, size_t j, energy_t e) {
-		assert(i<=j+TURN+1);
-		fold.CL_[j].push_back( cand_entry_t(i, e) );
-    }
+* @brief Register a candidate
+* @param i start
+* @param j end
+* @param e energy of candidate "V(i,j)"
+*/
+void register_candidate(SparseMFEFold &fold, size_t i, size_t j, energy_t e) {
+	assert(i<=j+TURN+1);
+	fold.CL_[j].push_back( cand_entry_t(i, e) );
+}
 
 energy_t fold(SparseMFEFold &fold) {
 	for (size_t i=fold.n_; i>0; --i) {
-	energy_t WM2_ip1_jm1 = INF;
-	for ( size_t j=i+TURN+1; j<=fold.n_; j++ ) {
+		energy_t WM2_ip1_jm1 = INF;
+		for ( size_t j=i+TURN+1; j<=fold.n_; j++ ) {
 
-	// ------------------------------
-	// W: split case
-	energy_t w_split = INF;
-	for ( auto &x : fold.CL_[j] ) {
-		size_t k=x.first;
-		energy_t v_kj =
-		x.second
-		+ E_ExtLoop(pair_type(fold, k,j),-1,-1,fold.params_);
-		w_split = std::min( w_split, fold.W_[k-1] + v_kj );
-	}
-	w_split = std::min(w_split,fold.W_[j-1]);
-
-	// ------------------------------
-	// WM and WM2: split cases
-	energy_t wm_split = INF;
-	energy_t wm2_split = INF;
-	for ( auto &x : fold.CL_[j] ) {
-		size_t k = x.first;
-		energy_t v_kj =
-		x.second
-		+ E_MLstem(pair_type(fold,k,j),-1,-1,fold.params_);
-
-		wm_split = std::min( wm_split, fold.WM_[k-1] + v_kj );
-		wm_split = std::min( wm_split,
-					static_cast<energy_t>((k-i)*fold.params_->MLbase) + v_kj );
-
-		wm2_split = std::min( wm2_split, fold.WM_[k-1] + v_kj );
-	}
-
-	wm2_split = std::min( wm2_split, fold.WM2_[j-1] + fold.params_->MLbase );
-	wm_split = std::min( wm_split, fold.WM_[j-1] + fold.params_->MLbase );
-
-	energy_t w  = w_split; // entry of W w/o contribution of V
-	energy_t wm = wm_split; // entry of WM w/o contribution of V
-
-
-	size_t i_mod=i%(MAXLOOP+1);
-
-	int ptype_closing = pair_type(fold,i,j);
-
-	// ----------------------------------------
-	// cases with base pair (i,j)
-	if(ptype_closing>0) { // if i,j form a canonical base pair
-
-		energy_t v_h = HairpinE(fold,i,j);
-
-		// info of best interior loop decomposition (if better than hairpin)
-		size_t best_l=0;
-		size_t best_k=0;
-		energy_t best_e;
-
-		energy_t v_iloop=INF;
-
-		// constraints for interior loops
-		// i<k; l<j
-		// k-i+j-l-2<=MAXLOOP  ==> k <= MAXLOOP+i+1
-		//            ==> l >= k+j-i-MAXLOOP-2
-		// l-k>=TURN+1         ==> k <= j-TURN-2
-		//            ==> l >= k+TURN+1
-		// j-i>=TURN+3
-		//
-		size_t max_k = std::min(j-TURN-2,i+MAXLOOP+1);
-		for ( size_t k=i+1; k<=max_k; k++) {
-		size_t k_mod=k%(MAXLOOP+1);
-
-		size_t min_l=std::max(k+TURN+1 + MAXLOOP+2, k+j-i) - MAXLOOP-2;
-
-		for (size_t l=min_l; l<j; l++) {
-
-			assert(k-i+j-l-2<=MAXLOOP);
-
-			energy_t v_iloop_kl =
-			fold.V_(k_mod,l)
-			+ ILoopE(fold,ptype_closing,i,j,k,l);
-
-			if ( v_iloop_kl < v_iloop ) {
-			v_iloop = v_iloop_kl;
-			best_l=l;
-			best_k=k;
-			best_e=fold.V_(k_mod,l);
+			// ------------------------------
+			// W: split case
+			energy_t w_split = INF;
+			for ( auto const [key,val] : fold.CL_[j] ) {
+				size_t k=key;
+				energy_t v_kj = val + E_ExtLoop(pair_type(fold, k,j),-1,-1,fold.params_);
+				w_split = std::min( w_split, fold.W_[k-1] + v_kj );
 			}
-		}
-		}
+			w_split = std::min(w_split,fold.W_[j-1]);
 
-		energy_t v_split =
-		WM2_ip1_jm1 // this value, conceptually
+			// ------------------------------
+			// WM and WM2: split cases
+			energy_t wm_split = INF;
+			energy_t wm2_split = INF;
+			for ( auto const [key,val] : fold.CL_[j] ) {
+				size_t k = key;
+				energy_t v_kj = val + E_MLstem(pair_type(fold,k,j),-1,-1,fold.params_);
+
+				wm_split = std::min( wm_split, fold.WM_[k-1] + v_kj );
+				wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*fold.params_->MLbase) + v_kj );
+
+				wm2_split = std::min( wm2_split, fold.WM_[k-1] + v_kj );
+			}
+
+			wm2_split = std::min( wm2_split, fold.WM2_[j-1] + fold.params_->MLbase );
+			wm_split = std::min( wm_split, fold.WM_[j-1] + fold.params_->MLbase );
+
+			energy_t w  = w_split; // entry of W w/o contribution of V
+			energy_t wm = wm_split; // entry of WM w/o contribution of V
+
+
+			size_t i_mod=i%(MAXLOOP+1);
+
+			const int ptype_closing = pair_type(fold,i,j);
+
+			// ----------------------------------------
+			// cases with base pair (i,j)
+			if(ptype_closing>0) { // if i,j form a canonical base pair
+
+				energy_t v_h = HairpinE(fold,i,j);
+
+				// info of best interior loop decomposition (if better than hairpin)
+				size_t best_l=0;
+				size_t best_k=0;
+				energy_t best_e;
+
+				energy_t v_iloop=INF;
+
+				// constraints for interior loops
+				// i<k; l<j
+				// k-i+j-l-2<=MAXLOOP  ==> k <= MAXLOOP+i+1
+				//            ==> l >= k+j-i-MAXLOOP-2
+				// l-k>=TURN+1         ==> k <= j-TURN-2
+				//            ==> l >= k+TURN+1
+				// j-i>=TURN+3
+				//
+				size_t max_k = std::min(j-TURN-2,i+MAXLOOP+1);
+				for ( size_t k=i+1; k<=max_k; k++) {
+					size_t k_mod=k%(MAXLOOP+1);
+
+					size_t min_l=std::max(k+TURN+1 + MAXLOOP+2, k+j-i) - MAXLOOP-2;
+
+					for (size_t l=min_l; l<j; l++) {
+
+						assert(k-i+j-l-2<=MAXLOOP);
+
+						const energy_t v_iloop_kl = fold.V_(k_mod,l) + ILoopE(fold,ptype_closing,i,j,k,l);
+
+						if ( v_iloop_kl < v_iloop ) {
+							v_iloop = v_iloop_kl;
+							best_l=l;
+							best_k=k;
+							best_e=fold.V_(k_mod,l);
+						}
+					}
+				}
+
+				const energy_t v_split = WM2_ip1_jm1 + E_MLstem(rtype[ptype_closing],-1,-1,fold.params_) + fold.params_->MLclosing;
+				// this value, conceptually
 				// WM2(i+1,j-1), is set in the
 				// previous j-iteration before this
 				// value in array WM2_[] is overwritten
-		+ E_MLstem(rtype[ptype_closing],-1,-1,fold.params_)
-		+ fold.params_->MLclosing;
 
-		energy_t v = std::min(v_h,std::min(v_iloop,v_split));
+				const energy_t v = std::min(v_h,std::min(v_iloop,v_split));
 
-		energy_t w_v  = v + E_ExtLoop(ptype_closing,-1,-1,fold.params_);
-		energy_t wm_v = v + E_MLstem(ptype_closing,-1,-1,fold.params_);
+				const energy_t w_v  = v + E_ExtLoop(ptype_closing,-1,-1,fold.params_);
+				const energy_t wm_v = v + E_MLstem(ptype_closing,-1,-1,fold.params_);
 
-		// update w and wm by v
-		w  = std::min(w_v, w_split);
-		wm = std::min(wm_v, wm_split);
+				// update w and wm by v
+				w  = std::min(w_v, w_split);
+				wm = std::min(wm_v, wm_split);
 
-		// register required trace arrows from (i,j)
-		if ( v_iloop < std::min(v_h,v_split) ) {
-		if ( is_candidate(fold,best_k,best_l) ) {
-			//std::cout << "Avoid TA "<<best_k<<" "<<best_l<<std::endl;
-			avoid_trace_arrow(fold.ta_);
-		} else {
-			//std::cout<<"Reg TA "<<i<<","<<j<<":"<<best_k<<","<<best_l<<std::endl;
-			register_trace_arrow(fold.ta_,i,j,best_k,best_l,best_e);
-		}
-		}
+				// register required trace arrows from (i,j)
+				if ( v_iloop < std::min(v_h,v_split) ) {
+					if ( is_candidate(fold,best_k,best_l) ) {
+						//std::cout << "Avoid TA "<<best_k<<" "<<best_l<<std::endl;
+						avoid_trace_arrow(fold.ta_);
+					} else {
+						//std::cout<<"Reg TA "<<i<<","<<j<<":"<<best_k<<","<<best_l<<std::endl;
+						register_trace_arrow(fold.ta_,i,j,best_k,best_l,best_e);
+					}
+				}
 
-		// check whether (i,j) is a candidate; then register
-		if ( w_v < w_split
-			||
-			wm_v < wm_split ) {
+				// check whether (i,j) is a candidate; then register
+				if ( w_v < w_split || wm_v < wm_split ) {
 
-		//std::cout << "Reg Cand "<<i<<","<<j<<std::endl;
+					//std::cout << "Reg Cand "<<i<<","<<j<<std::endl;
 
-		register_candidate( fold, i, j, v );
+					register_candidate( fold, i, j, v );
 
-		// always keep arrows starting from candidates
-		inc_source_ref_count(fold.ta_,i,j);
-		}
+					// always keep arrows starting from candidates
+					inc_source_ref_count(fold.ta_,i,j);
+				}
 
-		fold.V_(i_mod,j) = v;
+				fold.V_(i_mod,j) = v;
 
-	} else {
-		fold.V_(i_mod,j) = INF;
-	} // end if (i,j form a canonical base pair)
+			} else {
+				fold.V_(i_mod,j) = INF;
+			} // end if (i,j form a canonical base pair)
 
-	fold.W_[j]       = w;
-	fold.WM_[j]      = wm;
+			fold.W_[j]       = w;
+			fold.WM_[j]      = wm;
 
-	WM2_ip1_jm1 = fold.WM2_[j]; // here, the array WM2_ still
+			WM2_ip1_jm1 = fold.WM2_[j]; // here, the array WM2_ still
 					// contains WM2(i+1,j-1); in
 					// the next j-iteration, we
 					// need this.
-	fold.WM2_[j]     = wm2_split;
+			fold.WM2_[j]     = wm2_split;
 
-	} // end loop j
+		} // end loop j
 
-	// Clean up trace arrows in i+MAXLOOP+1
-	if ( fold.garbage_collect_ && i+MAXLOOP+1 <= fold.n_) {
-	gc_row(fold.ta_,i + MAXLOOP + 1 );
+		// Clean up trace arrows in i+MAXLOOP+1
+		if ( fold.garbage_collect_ && i+MAXLOOP+1 <= fold.n_) {
+			gc_row(fold.ta_,i + MAXLOOP + 1 );
+		}
+
+		// Reallocate candidate lists in i
+		for ( auto &x: fold.CL_ ) {
+			if (x.capacity() > 1.5*x.size()) {
+				cand_list_t vec(x.size());
+				copy(x.begin(),x.end(),vec.begin());
+				vec.swap(x);
+			}
+		}
+
+		compactify(fold.ta_);
 	}
 
-	// Reallocate candidate lists in i
-	for ( auto &x: fold.CL_ ) {
-	if (x.capacity() > 1.5*x.size()) {
-		cand_list_t vec(x.size());
-		copy(x.begin(),x.end(),vec.begin());
-		vec.swap(x);
-	}
-	}
-
-	compactify(fold.ta_);
+	return fold.W_[fold.n_];
 }
 
-return fold.W_[fold.n_];
-}
+
+
 
 
 
@@ -716,7 +693,7 @@ return fold.W_[fold.n_];
 
 size_t num_of_candidates(SparseMFEFold &fold)  {
 	size_t c=0;
-	for ( auto &x: fold.CL_ ) {
+	for ( auto const &x: fold.CL_ ) {
 		c += x.size();
 	}
 	return c;
@@ -728,7 +705,7 @@ TraceArrows & ta(SparseMFEFold &fold){
 
 size_t capacity_of_candidates(SparseMFEFold &fold) {
 	size_t c=0;
-	for ( auto &x: fold.CL_ ) {
+	for ( auto const &x: fold.CL_ ) {
 		c += x.capacity();
 	}
 	return c;

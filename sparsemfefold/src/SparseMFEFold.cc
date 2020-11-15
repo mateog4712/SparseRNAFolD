@@ -316,7 +316,7 @@ energy_t HairpinE(SparseMFEFold &fold,size_t i, size_t j) {
     void trace_WM2(SparseMFEFold &fold,size_t i, size_t j) {
 	if (i+2*TURN+3>j) {return;}
 
-	energy_t e = fold.WM2_[j];
+	const energy_t e = fold.WM2_[j];
 
 	// case j unpaired
 	if ( e == fold.WM2_[j-1] + fold.params_->MLbase ) {
@@ -327,7 +327,7 @@ energy_t HairpinE(SparseMFEFold &fold,size_t i, size_t j) {
 
 	for ( auto it=fold.CL_[j].begin();fold.CL_[j].end() != it  && it->first>=i+TURN+1;++it ) {
 	    size_t k = it->first;
-	    energy_t v_kj = it->second + E_MLstem(pair_type(fold,k,j),-1,-1,fold.params_);
+	    const energy_t v_kj = it->second + E_MLstem(pair_type(fold,k,j),-1,-1,fold.params_);
 	    if ( e == fold.WM_[k-1] + v_kj ) {
 		trace_WM(fold,i,k-1,fold.WM_[k-1]);
 		trace_V(fold,k,j,it->second);
@@ -370,7 +370,7 @@ energy_t HairpinE(SparseMFEFold &fold,size_t i, size_t j) {
 
 	for ( auto it=fold.CL_[j].begin();fold.CL_[j].end() != it && it->first>=i;++it ) {
 	    size_t k = it->first;
-	    energy_t v_kj = it->second
+	    const energy_t v_kj = it->second
 		+ E_MLstem(pair_type(fold,k,j),-1,-1,fold.params_);
 	    if ( e == fold.WM_[k-1] + v_kj ) {
 		// no recomp, same i
@@ -528,6 +528,21 @@ void register_candidate(SparseMFEFold &fold, size_t i, size_t j, energy_t e) {
 	fold.CL_[j].push_back( cand_entry_t(i, e) );
 }
 
+std::pair< energy_t, energy_t > split_cases( auto const& CL, auto const& WM, auto const& S, auto const& params, int i, int j ) {
+	energy_t wm_split = INF;
+	energy_t wm2_split = INF;
+	for ( auto const [key,val] : CL) {
+		size_t k = key;
+		energy_t v_kj = val + E_MLstem(pair[S[k]][S[j]],-1,-1,params);
+	
+		wm_split = std::min( wm_split, WM[k-1] + v_kj );
+		wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + v_kj );
+
+		wm2_split = std::min( wm2_split, WM[k-1] + v_kj );
+	}
+	return std::make_pair( wm_split, wm2_split );
+
+}
 energy_t fold(SparseMFEFold &fold) {
 	for (size_t i=fold.n_; i>0; --i) {
 		energy_t WM2_ip1_jm1 = INF;
@@ -545,17 +560,7 @@ energy_t fold(SparseMFEFold &fold) {
 
 			// ------------------------------
 			// WM and WM2: split cases
-			energy_t wm_split = INF;
-			energy_t wm2_split = INF;
-			for ( auto const [key,val] : fold.CL_[j] ) {
-				size_t k = key;
-				energy_t v_kj = val + E_MLstem(pair_type(fold,k,j),-1,-1,fold.params_);
-
-				wm_split = std::min( wm_split, fold.WM_[k-1] + v_kj );
-				wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*fold.params_->MLbase) + v_kj );
-
-				wm2_split = std::min( wm2_split, fold.WM_[k-1] + v_kj );
-			}
+			auto [wm_split, wm2_split] = split_cases( fold.CL_[j], fold.WM_,fold.S_, fold.params_,i,j);
 
 			wm2_split = std::min( wm2_split, fold.WM2_[j-1] + fold.params_->MLbase );
 			wm_split = std::min( wm_split, fold.WM_[j-1] + fold.params_->MLbase );

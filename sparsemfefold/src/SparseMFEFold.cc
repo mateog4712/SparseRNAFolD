@@ -94,8 +94,8 @@ typedef std::vector< cand_entry_t > cand_list_t;
 
 class SparseMFEFold;
 
-int pair_type(SparseMFEFold & fold, size_t i, size_t j);
-energy_t ILoopE(SparseMFEFold &fold, int ptype_closing,size_t i, size_t j, size_t k,  size_t l);
+
+energy_t ILoopE(auto const& S_, auto const& S1_, auto const& params_, int ptype_closing,size_t i, size_t j, size_t k,  size_t l);
 void trace_V( SparseMFEFold &fold, size_t i, size_t j, energy_t e );
 void trace_W(SparseMFEFold &fold, size_t i, size_t j);
 void trace_WM( SparseMFEFold &fold,size_t i, size_t j, energy_t e) ;
@@ -311,10 +311,10 @@ auto const recompute_W(auto const &W_, auto const& CL_, size_t i, size_t max_j) 
      *
      * @return whether (i,j) is candidate for W/WM splits
      */
-    bool is_candidate(SparseMFEFold &fold,size_t i, size_t j) {
-	const cand_list_t &list = fold.CL_[j];
+	bool is_candidate(auto const& CL_,auto const& cand_comp,size_t i, size_t j) {
+	const cand_list_t &list = CL_[j];
 
-	auto it = std::lower_bound(list.begin(),list.end(),i,fold.cand_comp);
+	auto it = std::lower_bound(list.begin(),list.end(),i,cand_comp);
 
 	return it!=list.end() && it->first==i;
     }
@@ -339,7 +339,7 @@ auto const recompute_W(auto const &W_, auto const& CL_, size_t i, size_t max_j) 
 
 	for ( auto it=fold.CL_[j].begin();fold.CL_[j].end() != it  && it->first>=i+TURN+1;++it ) {
 	    size_t k = it->first;
-	    const energy_t v_kj = it->second + E_MLstem(pair_type(fold,k,j),-1,-1,fold.params_);
+	    const energy_t v_kj = it->second + E_MLstem(pair[fold.S_[k]][fold.S_[j]],-1,-1,fold.params_);
 	    if ( e == fold.WM_[k-1] + v_kj ) {
 		trace_WM(fold,i,k-1,fold.WM_[k-1]);
 		trace_V(fold,k,j,it->second);
@@ -382,8 +382,7 @@ auto const recompute_W(auto const &W_, auto const& CL_, size_t i, size_t max_j) 
 
 	for ( auto it=fold.CL_[j].begin();fold.CL_[j].end() != it && it->first>=i;++it ) {
 	    size_t k = it->first;
-	    const energy_t v_kj = it->second
-		+ E_MLstem(pair_type(fold,k,j),-1,-1,fold.params_);
+	    const energy_t v_kj = it->second + E_MLstem(pair[fold.S_[k]][fold.S_[j]],-1,-1,fold.params_);
 	    if ( e == fold.WM_[k-1] + v_kj ) {
 		// no recomp, same i
 		trace_WM(fold,i,k-1,fold.WM_[k-1]);
@@ -412,7 +411,7 @@ auto const recompute_W(auto const &W_, auto const& CL_, size_t i, size_t max_j) 
 	assert( i+TURN+1<=j );
 	assert( j<=n_ );
 
-	if (fold.mark_candidates_ && is_candidate(fold,i,j)) {
+	if (fold.mark_candidates_ && is_candidate(fold.CL_,fold.cand_comp,i,j)) {
 	    fold.structure_[i]='[';
 	    fold.structure_[j]=']';
 	} else {
@@ -420,7 +419,7 @@ auto const recompute_W(auto const &W_, auto const& CL_, size_t i, size_t max_j) 
 	    fold.structure_[j]=')';
 	}
 
-	int ptype_closing = pair_type(fold,i,j);
+	int ptype_closing = pair[fold.S_[i]][fold.S_[j]];
 
 	if (exists_trace_arrow_from(fold.ta_,i,j)) {
 	    // trace arrows may exist for interior loop case
@@ -441,7 +440,7 @@ auto const recompute_W(auto const &W_, auto const& CL_, size_t i, size_t max_j) 
 	    for ( size_t l=i; l<j; l++) {
 		for ( auto it=fold.CL_[l].begin(); fold.CL_[l].end()!=it && it->first>i; ++it ) {
 		    size_t k=it->first;
-		    if (  e == it->second + ILoopE(fold,ptype_closing,i,j,k,l) ) {
+		    if (  e == it->second + ILoopE(fold.S_,fold.S1_,fold.params_,ptype_closing,i,j,k,l) ) {
 			trace_V(fold,k,l,it->second);
 			return;
 		    }
@@ -486,7 +485,7 @@ auto const recompute_W(auto const &W_, auto const& CL_, size_t i, size_t max_j) 
 	// determine best split W -> W V
 	for ( auto it = fold.CL_[j].begin();fold.CL_[j].end()!=it && it->first>=i;++it ) {
 	    k = it->first;
-	    energy_t v_kj = it->second + E_ExtLoop(pair_type(fold, k,j),-1,-1,fold.params_);
+	    energy_t v_kj = it->second + E_ExtLoop(pair[fold.S_[k]][fold.S_[j]],-1,-1,fold.params_);
 	    energy_t w = fold.W_[k-1] + v_kj;
 
 	    if (fold.W_[j] == w) {
@@ -503,11 +502,9 @@ auto const recompute_W(auto const &W_, auto const& CL_, size_t i, size_t max_j) 
 	trace_V(fold,k,j,v);
 }
 
-int pair_type(SparseMFEFold &fold, size_t i, size_t j)  {
-	return pair[fold.S_[i]][fold.S_[j]];
-    }
+
 /* pre: ptype_closing>0 */
-energy_t ILoopE(SparseMFEFold &fold, int ptype_closing,size_t i, size_t j, size_t k,  size_t l)  {
+energy_t ILoopE(auto const& S_, auto const& S1_, auto const& params_, int ptype_closing,size_t i, size_t j, size_t k,  size_t l)  {
 	assert(ptype_closing>0);
 	assert(1<=i);
 	assert(i<k);
@@ -516,19 +513,11 @@ energy_t ILoopE(SparseMFEFold &fold, int ptype_closing,size_t i, size_t j, size_
 	//assert(l<=len); // don't know len here
 
 	// note: enclosed bp type 'turned around' for lib call
-	int ptype_enclosed = rtype[pair_type(fold,k,l)];
+	int ptype_enclosed = rtype[pair[S_[k]][S_[l]]];
 
 	if (ptype_enclosed==0) return INF;
 
-	return
-	    E_IntLoop(k-i-1,j-l-1,
-		      ptype_closing,
-		      ptype_enclosed,
-		      fold.S1_[i+1],
-		      fold.S1_[j-1],
-		      fold.S1_[k-1],
-		      fold.S1_[l+1],
-		      const_cast<paramT *>(fold.params_));
+	return E_IntLoop(k-i-1,j-l-1,ptype_closing,ptype_enclosed,S1_[i+1],S1_[j-1],S1_[k-1],S1_[l+1],const_cast<paramT *>(params_));
 }
 
 
@@ -568,7 +557,7 @@ energy_t fold(SparseMFEFold &fold) {
 			energy_t w_split = INF;
 			for ( auto const [key,val] : fold.CL_[j] ) {
 				size_t k=key;
-				energy_t v_kj = val + E_ExtLoop(pair_type(fold, k,j),-1,-1,fold.params_);
+				energy_t v_kj = val + E_ExtLoop(pair[fold.S_[k]][fold.S_[j]],-1,-1,fold.params_);
 				w_split = std::min( w_split, fold.W_[k-1] + v_kj );
 			}
 			w_split = std::min(w_split,fold.W_[j-1]);
@@ -586,7 +575,7 @@ energy_t fold(SparseMFEFold &fold) {
 
 			size_t i_mod=i%(MAXLOOP+1);
 
-			const int ptype_closing = pair_type(fold,i,j);
+			const int ptype_closing = pair[fold.S_[i]][fold.S_[j]];
 
 			// ----------------------------------------
 			// cases with base pair (i,j)
@@ -619,7 +608,7 @@ energy_t fold(SparseMFEFold &fold) {
 
 						assert(k-i+j-l-2<=MAXLOOP);
 
-						const energy_t v_iloop_kl = fold.V_(k_mod,l) + ILoopE(fold,ptype_closing,i,j,k,l);
+						const energy_t v_iloop_kl = fold.V_(k_mod,l) + ILoopE(fold.S_,fold.S1_,fold.params_,ptype_closing,i,j,k,l);
 
 						if ( v_iloop_kl < v_iloop ) {
 							v_iloop = v_iloop_kl;
@@ -647,7 +636,7 @@ energy_t fold(SparseMFEFold &fold) {
 
 				// register required trace arrows from (i,j)
 				if ( v_iloop < std::min(v_h,v_split) ) {
-					if ( is_candidate(fold,best_k,best_l) ) {
+					if ( is_candidate(fold.CL_,fold.cand_comp,best_k,best_l) ) {
 						//std::cout << "Avoid TA "<<best_k<<" "<<best_l<<std::endl;
 						avoid_trace_arrow(fold.ta_);
 					} else {
@@ -711,9 +700,9 @@ energy_t fold(SparseMFEFold &fold) {
 
 
 
-size_t num_of_candidates(SparseMFEFold &fold)  {
+size_t num_of_candidates(auto const& CL_)  {
 	size_t c=0;
-	for ( auto const &x: fold.CL_ ) {
+	for ( auto const &x: CL_ ) {
 		c += x.size();
 	}
 	return c;
@@ -723,9 +712,9 @@ TraceArrows & ta(SparseMFEFold &fold){
 	return fold.ta_;
     }
 
-size_t capacity_of_candidates(SparseMFEFold &fold) {
+size_t capacity_of_candidates(auto const& CL_) {
 	size_t c=0;
-	for ( auto const &x: fold.CL_ ) {
+	for ( auto const &x: CL_ ) {
 		c += x.capacity();
 	}
 	return c;
@@ -795,8 +784,8 @@ main(int argc,char **argv) {
 	// std::cout << "TA rm:\t"<<ta(sparsemfefold).erased()<<std::endl;
 
 	std::cout <<std::endl;
-	std::cout << "Can num:\t"<<num_of_candidates(sparsemfefold)<<std::endl;
-	std::cout << "Can cap:\t"<<capacity_of_candidates(sparsemfefold)<<std::endl;
+	std::cout << "Can num:\t"<<num_of_candidates(sparsemfefold.CL_)<<std::endl;
+	std::cout << "Can cap:\t"<<capacity_of_candidates(sparsemfefold.CL_)<<std::endl;
 	std::cout << "TAs num:\t"<<sizeT(ta(sparsemfefold))<<std::endl;
 	// std::cout << "TAs cap:\t"<<ta(sparsemfefold).capacity()<<std::endl;
 	std::cout << "TAs cap:\t"<<capacityT(ta(sparsemfefold))<<std::endl;

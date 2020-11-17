@@ -194,7 +194,7 @@ public:
 
 // ! TRANSLATED: -----------------------------------------------------------------------------------
 
-	energy_t HairpinE(auto const& seq_, auto const &S, auto const &S1_, auto const& params_, size_t i, size_t j) {
+	energy_t HairpinE(auto const& seq, auto const &S, auto const &S1, auto const& params, size_t i, size_t j) {
 
 	assert(1<=i);
 	assert(i<j);
@@ -205,7 +205,7 @@ public:
 
 	if (ptype_closing==0) return INF;
 
-	return E_Hairpin(j-i-1,ptype_closing,S1_[i+1],S1_[j-1],&seq_.c_str()[i-1], const_cast<paramT *>(params_));
+	return E_Hairpin(j-i-1,ptype_closing,S1[i+1],S1[j-1],&seq.c_str()[i-1], const_cast<paramT *>(params));
     }
 
 
@@ -216,9 +216,9 @@ public:
      * @param i row index
      * @param max_j maximum column index
      */
-auto const recompute_W(auto const &W_, auto const& CL_, size_t i, size_t max_j) {
+auto const recompute_W(auto const &W, auto const& CL, size_t i, size_t max_j) {
 	//std::cout << "Compute W " <<i<<" "<<max_j<<std::endl;
-	std::vector<energy_t> temp = W_;
+	std::vector<energy_t> temp = W;
 	for ( size_t j=i-1; j<=std::min(i+TURN,max_j); j++ ) { temp[j]=0; }
 	for ( size_t j=i+TURN+1; j<=max_j; j++ ) {
 
@@ -226,7 +226,7 @@ auto const recompute_W(auto const &W_, auto const& CL_, size_t i, size_t max_j) 
 
 	    // note: the loop covers the case W(i,j)=V(i,j),
 	    // since this is in the candidate list (TBS)
-	    for ( auto it = CL_[j].begin();CL_[j].end()!=it && it->first>=i ; ++it ) {
+	    for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>=i ; ++it ) {
 			w = std::min( w, temp[it->first-1] + it->second );
 	    }
 	    // case "j unpaired" is not in the CL (anymore)
@@ -245,26 +245,26 @@ auto const recompute_W(auto const &W_, auto const& CL_, size_t i, size_t max_j) 
 	* @param i row index
 	* @param max_j maximum column index
 	*/
-    auto const recompute_WM(auto const& WM_, auto const CL_, auto const& S, auto const &params_, auto const& n_, size_t i, size_t max_j) {
+    auto const recompute_WM(auto const& WM, auto const CL, auto const& S, auto const &params, auto const& n, size_t i, size_t max_j) {
 	//std::cout << "Compute WM " <<i<<" "<<max_j<<std::endl;
 
 	assert(i>=1);
-	assert(max_j<=n_);
+	assert(max_j<=n);
 
-	std::vector<energy_t> temp = WM_;
+	std::vector<energy_t> temp = WM;
 
 	for ( size_t j=i-1; j<=std::min(i+TURN,max_j); j++ ) { temp[j]=INF; }
 
 	for ( size_t j=i+TURN+1; j<=max_j; j++ ) {
 	    energy_t wm = INF;
 
-	    for ( auto it = CL_[j].begin();CL_[j].end()!=it && it->first>=i ; ++it ) {
+	    for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>=i ; ++it ) {
 			size_t k = it->first;
-			const energy_t v_kj = it->second + E_MLstem(pair[S[k]][S[j]],-1,-1,params_);
-			wm = std::min( wm, static_cast<energy_t>(params_->MLbase*(k-i)) + v_kj );
+			const energy_t v_kj = it->second + E_MLstem(pair[S[k]][S[j]],-1,-1,params);
+			wm = std::min( wm, static_cast<energy_t>(params->MLbase*(k-i)) + v_kj );
 			wm = std::min( wm, temp[k-1]  + v_kj );
 	    }
-	    wm = std::min(wm, temp[j-1] + params_->MLbase);
+	    wm = std::min(wm, temp[j-1] + params->MLbase);
 
 	    temp[j] = wm;
 	}
@@ -277,26 +277,26 @@ auto const recompute_W(auto const &W_, auto const& CL_, size_t i, size_t max_j) 
      * @param i row index
      * @param max_j maximum column index
      */
-    auto const recompute_WM2(auto const& WM_, auto const& WM2_, auto const CL_, auto const& S, auto const &params_, auto const& n_, size_t i, size_t max_j) {
+    auto const recompute_WM2(auto const& WM, auto const& WM2, auto const CL, auto const& S, auto const &params, auto const& n, size_t i, size_t max_j) {
 	//std::cout << "Recompute WM2 " <<i<<" "<<max_j<<std::endl;
 
 	assert(i>=1);
 	//assert(i+2*TURN+3<=max_j);
-	assert(max_j<= n_);
+	assert(max_j<= n);
 
-	std::vector<energy_t> temp = WM2_;
+	std::vector<energy_t> temp = WM2;
 
 	for ( size_t j=i-1; j<=std::min(i+2*TURN+2,max_j); j++ ) { temp[j]=INF; }
 
 	for ( size_t j=i+2*TURN+3; j<=max_j; j++ ) {
 	    energy_t wm2 = INF;
 
-	    for ( auto it = CL_[j].begin();CL_[j].end()!=it && it->first>i+TURN+1 ; ++it ) {
+	    for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>i+TURN+1 ; ++it ) {
 			size_t k = it->first;
-			energy_t v_kl= it->second + E_MLstem(pair[S[k]][S[j]],-1,-1,params_);
-			wm2 = std::min( wm2, WM_[k-1]  + v_kl );
+			energy_t v_kl= it->second + E_MLstem(pair[S[k]][S[j]],-1,-1,params);
+			wm2 = std::min( wm2, WM[k-1]  + v_kl );
 	    }
-	    wm2 = std::min(wm2, temp[j-1] + params_->MLbase);
+	    wm2 = std::min(wm2, temp[j-1] + params->MLbase);
 
 	    temp[j] = wm2;
 	}
@@ -311,8 +311,8 @@ auto const recompute_W(auto const &W_, auto const& CL_, size_t i, size_t max_j) 
      *
      * @return whether (i,j) is candidate for W/WM splits
      */
-	bool is_candidate(auto const& CL_,auto const& cand_comp,size_t i, size_t j) {
-	const cand_list_t &list = CL_[j];
+	bool is_candidate(auto const& CL,auto const& cand_comp,size_t i, size_t j) {
+	const cand_list_t &list = CL[j];
 
 	auto it = std::lower_bound(list.begin(),list.end(),i,cand_comp);
 
@@ -381,7 +381,7 @@ auto const recompute_W(auto const &W_, auto const& CL_, size_t i, size_t max_j) 
 	}
 
 	for ( auto it=fold.CL_[j].begin();fold.CL_[j].end() != it && it->first>=i;++it ) {
-	    size_t k = it->first;
+	    const size_t k = it->first;
 	    const energy_t v_kj = it->second + E_MLstem(pair[fold.S_[k]][fold.S_[j]],-1,-1,fold.params_);
 	    if ( e == fold.WM_[k-1] + v_kj ) {
 		// no recomp, same i
@@ -419,14 +419,14 @@ auto const recompute_W(auto const &W_, auto const& CL_, size_t i, size_t max_j) 
 	    fold.structure_[j]=')';
 	}
 
-	int ptype_closing = pair[fold.S_[i]][fold.S_[j]];
+	const int ptype_closing = pair[fold.S_[i]][fold.S_[j]];
 
 	if (exists_trace_arrow_from(fold.ta_,i,j)) {
 	    // trace arrows may exist for interior loop case
 	    const TraceArrow &arrow = trace_arrow_from(fold.ta_,i,j);
 
-	    size_t k=arrow.k(i,j);
-	    size_t l=arrow.l(i,j);
+	    const size_t k=arrow.k(i,j);
+	    const size_t l=arrow.l(i,j);
 	    assert(i<k);
 	    assert(l<j);
 	    trace_V(fold,k,l, arrow.target_energy());
@@ -439,7 +439,7 @@ auto const recompute_W(auto const &W_, auto const& CL_, size_t i, size_t max_j) 
 	    // try to trace back to a candidate: (still) interior loop case
 	    for ( size_t l=i; l<j; l++) {
 		for ( auto it=fold.CL_[l].begin(); fold.CL_[l].end()!=it && it->first>i; ++it ) {
-		    size_t k=it->first;
+		    const size_t k=it->first;
 		    if (  e == it->second + ILoopE(fold.S_,fold.S1_,fold.params_,ptype_closing,i,j,k,l) ) {
 			trace_V(fold,k,l,it->second);
 			return;
@@ -485,8 +485,8 @@ auto const recompute_W(auto const &W_, auto const& CL_, size_t i, size_t max_j) 
 	// determine best split W -> W V
 	for ( auto it = fold.CL_[j].begin();fold.CL_[j].end()!=it && it->first>=i;++it ) {
 	    k = it->first;
-	    energy_t v_kj = it->second + E_ExtLoop(pair[fold.S_[k]][fold.S_[j]],-1,-1,fold.params_);
-	    energy_t w = fold.W_[k-1] + v_kj;
+	    const energy_t v_kj = it->second + E_ExtLoop(pair[fold.S_[k]][fold.S_[j]],-1,-1,fold.params_);
+	    const energy_t w = fold.W_[k-1] + v_kj;
 
 	    if (fold.W_[j] == w) {
 		v = it->second;
@@ -513,7 +513,7 @@ energy_t ILoopE(auto const& S_, auto const& S1_, auto const& params_, int ptype_
 	//assert(l<=len); // don't know len here
 
 	// note: enclosed bp type 'turned around' for lib call
-	int ptype_enclosed = rtype[pair[S_[k]][S_[l]]];
+	const int ptype_enclosed = rtype[pair[S_[k]][S_[l]]];
 
 	if (ptype_enclosed==0) return INF;
 

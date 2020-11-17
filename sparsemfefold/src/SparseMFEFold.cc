@@ -194,101 +194,113 @@ public:
 
 // ! TRANSLATED: -----------------------------------------------------------------------------------
 
-energy_t HairpinE(SparseMFEFold &fold,size_t i, size_t j) {
+	energy_t HairpinE(auto const& seq_, auto const &S, auto const &S1_, auto const& params_, size_t i, size_t j) {
 
 	assert(1<=i);
 	assert(i<j);
+	
 	//assert(j<=len); // don't know len here
 
-	const int ptype_closing = pair_type(fold, i,j);
+	const int ptype_closing = pair[S[i]][S[j]];
 
 	if (ptype_closing==0) return INF;
 
-	return E_Hairpin(j-i-1,ptype_closing,fold.S1_[i+1],fold.S1_[j-1],&fold.seq_.c_str()[i-1],
-	const_cast<paramT *>(fold.params_));
+	return E_Hairpin(j-i-1,ptype_closing,S1_[i+1],S1_[j-1],&seq_.c_str()[i-1], const_cast<paramT *>(params_));
     }
-/**
+
+
+
+	/**
      * @brief Recompute row of W
      *
      * @param i row index
      * @param max_j maximum column index
      */
-    void recompute_W(SparseMFEFold &fold, size_t i, size_t max_j) {
+auto const recompute_W(auto const &W_, auto const& CL_, size_t i, size_t max_j) {
 	//std::cout << "Compute W " <<i<<" "<<max_j<<std::endl;
-
-	for ( size_t j=i-1; j<=std::min(i+TURN,max_j); j++ ) { fold.W_[j]=0; }
+	std::vector<energy_t> temp = W_;
+	for ( size_t j=i-1; j<=std::min(i+TURN,max_j); j++ ) { temp[j]=0; }
 	for ( size_t j=i+TURN+1; j<=max_j; j++ ) {
 
 	    energy_t w = INF;
 
 	    // note: the loop covers the case W(i,j)=V(i,j),
 	    // since this is in the candidate list (TBS)
-	    for ( auto it = fold.CL_[j].begin();fold.CL_[j].end()!=it && it->first>=i ; ++it ) {
-			w = std::min( w, fold.W_[it->first-1] + it->second );
+	    for ( auto it = CL_[j].begin();CL_[j].end()!=it && it->first>=i ; ++it ) {
+			w = std::min( w, temp[it->first-1] + it->second );
 	    }
 	    // case "j unpaired" is not in the CL (anymore)
-	    w = std::min(w,fold.W_[j-1]);
+	    w = std::min(w,temp[j-1]);
 
-	    fold.W_[j] = w;
+	    temp[j] = w;
 	}
+	return temp;
 }
-/**
-     * @brief Recompute row of WM
-     *
-     * @param i row index
-     * @param max_j maximum column index
-     */
-    void recompute_WM(SparseMFEFold &fold,size_t i, size_t max_j) {
+
+
+
+	/**
+	* @brief Recompute row of WM
+	*
+	* @param i row index
+	* @param max_j maximum column index
+	*/
+    auto const recompute_WM(auto const& WM_, auto const CL_, auto const& S, auto const &params_, auto const& n_, size_t i, size_t max_j) {
 	//std::cout << "Compute WM " <<i<<" "<<max_j<<std::endl;
 
 	assert(i>=1);
-	assert(max_j<=fold.n_);
+	assert(max_j<=n_);
 
-	for ( size_t j=i-1; j<=std::min(i+TURN,max_j); j++ ) { fold.WM_[j]=INF; }
+	std::vector<energy_t> temp = WM_;
+
+	for ( size_t j=i-1; j<=std::min(i+TURN,max_j); j++ ) { temp[j]=INF; }
 
 	for ( size_t j=i+TURN+1; j<=max_j; j++ ) {
 	    energy_t wm = INF;
 
-	    for ( auto it = fold.CL_[j].begin();fold.CL_[j].end()!=it && it->first>=i ; ++it ) {
+	    for ( auto it = CL_[j].begin();CL_[j].end()!=it && it->first>=i ; ++it ) {
 			size_t k = it->first;
-			const energy_t v_kj = it->second + E_MLstem(pair_type(fold, k,j),-1,-1,fold.params_);
-			wm = std::min( wm, static_cast<energy_t>(fold.params_->MLbase*(k-i)) + v_kj );
-			wm = std::min( wm, fold.WM_[k-1]  + v_kj );
+			const energy_t v_kj = it->second + E_MLstem(pair[S[k]][S[j]],-1,-1,params_);
+			wm = std::min( wm, static_cast<energy_t>(params_->MLbase*(k-i)) + v_kj );
+			wm = std::min( wm, temp[k-1]  + v_kj );
 	    }
-	    wm = std::min(wm, fold.WM_[j-1] + fold.params_->MLbase);
+	    wm = std::min(wm, temp[j-1] + params_->MLbase);
 
-	    fold.WM_[j] = wm;
+	    temp[j] = wm;
 	}
+	return temp;
 }
 
-/**
+	/**
      * @brief Recompute row of WM2
      *
      * @param i row index
      * @param max_j maximum column index
      */
-    void recompute_WM2(SparseMFEFold &fold, size_t i, size_t max_j) {
+    auto const recompute_WM2(auto const& WM_, auto const& WM2_, auto const CL_, auto const& S, auto const &params_, auto const& n_, size_t i, size_t max_j) {
 	//std::cout << "Recompute WM2 " <<i<<" "<<max_j<<std::endl;
 
 	assert(i>=1);
 	//assert(i+2*TURN+3<=max_j);
-	assert(max_j<=fold.n_);
+	assert(max_j<= n_);
 
-	for ( size_t j=i-1; j<=std::min(i+2*TURN+2,max_j); j++ ) { fold.WM2_[j]=INF; }
+	std::vector<energy_t> temp = WM2_;
+
+	for ( size_t j=i-1; j<=std::min(i+2*TURN+2,max_j); j++ ) { temp[j]=INF; }
 
 	for ( size_t j=i+2*TURN+3; j<=max_j; j++ ) {
 	    energy_t wm2 = INF;
 
-	    for ( auto it = fold.CL_[j].begin();fold.CL_[j].end()!=it && it->first>i+TURN+1 ; ++it ) {
+	    for ( auto it = CL_[j].begin();CL_[j].end()!=it && it->first>i+TURN+1 ; ++it ) {
 			size_t k = it->first;
-			energy_t v_kl=
-		    it->second + E_MLstem(pair_type(fold, k,j),-1,-1,fold.params_);
-			wm2 = std::min( wm2, fold.WM_[k-1]  + v_kl );
+			energy_t v_kl= it->second + E_MLstem(pair[S[k]][S[j]],-1,-1,params_);
+			wm2 = std::min( wm2, WM_[k-1]  + v_kl );
 	    }
-	    wm2 = std::min(wm2, fold.WM2_[j-1] + fold.params_->MLbase);
+	    wm2 = std::min(wm2, temp[j-1] + params_->MLbase);
 
-	    fold.WM2_[j] = wm2;
+	    temp[j] = wm2;
 	}
+	return temp;
 }
 
 /**
@@ -436,16 +448,19 @@ energy_t HairpinE(SparseMFEFold &fold,size_t i, size_t j) {
 		}
 	    }
 	}
-
+	
 	// is this a hairpin?
-	if ( e == HairpinE(fold,i,j) ) {
+	if ( e == HairpinE(fold.seq_,fold.S_,fold.S1_,fold.params_,i,j) ) {
 	    return;
 	}
 
 	// if we are still here, trace to wm2 (split case);
 	// in this case, we know the 'trace arrow'; the next row has to be recomputed
-	recompute_WM(fold,i+1,j-1);
-	recompute_WM2(fold,i+1,j-1);
+	auto const temp = recompute_WM(fold.WM_,fold.CL_,fold.S_,fold.params_,fold.n_,i+1,j-1);
+	fold.WM_ = temp;
+	auto const temp2 = recompute_WM2(fold.WM_,fold.WM2_,fold.CL_,fold.S_,fold.params_,fold.n_,i+1,j-1);
+	fold.WM2_ = temp2;
+	
 	trace_WM2(fold,i+1,j-1);
 }
 /**
@@ -577,7 +592,7 @@ energy_t fold(SparseMFEFold &fold) {
 			// cases with base pair (i,j)
 			if(ptype_closing>0) { // if i,j form a canonical base pair
 
-				energy_t v_h = HairpinE(fold,i,j);
+				energy_t v_h = HairpinE(fold.seq_,fold.S_,fold.S1_,fold.params_,i,j);
 
 				// info of best interior loop decomposition (if better than hairpin)
 				size_t best_l=0;

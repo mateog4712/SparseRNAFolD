@@ -96,9 +96,10 @@ class SparseMFEFold;
 
 
 energy_t ILoopE(auto const& S_, auto const& S1_, auto const& params_, int ptype_closing,size_t i, size_t j, size_t k,  size_t l);
-void trace_V( SparseMFEFold &fold, size_t i, size_t j, energy_t e );
-void trace_W(SparseMFEFold &fold, size_t i, size_t j);
-void trace_WM( SparseMFEFold &fold,size_t i, size_t j, energy_t e) ;
+void trace_V(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S, auto const& S1, auto &ta, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates, size_t i, size_t j, energy_t e );
+void trace_W(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S, auto const& S1, auto &ta, auto const& W, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates, size_t i, size_t j);
+void trace_WM(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S, auto const& S1, auto &ta, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates, size_t i, size_t j, energy_t e) ;
+void trace_WM2(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S, auto const& S1, auto &ta, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates,size_t i, size_t j);
 /**
  * Space efficient sparsification of Zuker-type RNA folding with
  * trace-back. Provides methods for the evaluation of dynamic
@@ -318,31 +319,171 @@ auto const recompute_W(auto const &W, auto const& CL, size_t i, size_t max_j) {
 
 	return it!=list.end() && it->first==i;
     }
+	/**
+     * @brief Trace from W entry
+     *
+     * @param i row index
+     * @param j column index
+     * pre: W contains values of row i in interval i..j
+     */
+    void trace_W(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S, auto const& S1, auto &ta, auto const& W, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates, size_t i, size_t j) {
+	// std::cout << "Trace W "<<i<<" "<<j<<std::endl;
+	if (i+TURN+1>=j) return;
+
+	// case j unpaired
+	if (W[j] == W[j-1]) {
+	    trace_W(seq,CL,cand_comp,structure,params,S,S1,ta,W,WM,WM2,n,mark_candidates,i,j-1);
+	    return;
+	}
+
+	size_t k=j+1;
+	energy_t v=INF;
+
+	// determine best split W -> W V
+	for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>=i;++it ) {
+	    k = it->first;
+	    const energy_t v_kj = it->second + E_ExtLoop(pair[S[k]][S[j]],-1,-1,params);
+	    const energy_t w = W[k-1] + v_kj;
+
+	    if (W[j] == w) {
+		v = it->second;
+		break;
+	    }
+	}
+
+	assert(i<=k && k<j);
+	assert(v<INF);
+
+	// don't recompute W, since i is not changed
+	trace_W(seq,CL,cand_comp,structure,params,S,S1,ta,W,WM,WM2,n,mark_candidates,i,k-1);
+	trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,k,j,v);
+}
+
+	/**
+     * @brief Trace from V entry
+     *
+     * @param i row index
+     * @param j column index
+     * @param energy energy in V[i,j]
+     *
+     * pre: structure is string of size (n+1)
+     */
+    void trace_V(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S, auto const& S1, auto &ta, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates, size_t i, size_t j, energy_t e ) {
+	// std::cout << "trace_V "<<i<<" "<<j<<std::endl;
+
+	assert( i+TURN+1<=j );
+	assert( j<=n_ );
+
+
+	if (mark_candidates && is_candidate(CL,cand_comp,i,j)) {
+	    structure[i]='[';
+	    structure[j]=']';
+	} else {
+	    structure[i]='(';
+	    structure[j]=')';
+	}
+
+	const int ptype_closing = pair[S[i]][S[j]];
+
+	if (exists_trace_arrow_from(ta,i,j)) {
+	    // trace arrows may exist for interior loop case
+	    const TraceArrow &arrow = trace_arrow_from(ta,i,j);
+
+	    const size_t k=arrow.k(i,j);
+	    const size_t l=arrow.l(i,j);
+	    assert(i<k);
+	    assert(l<j);
+	    trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,k,l, arrow.target_energy());
+	    return;
+
+	} else {
+
+	    assert(ptype_closing>0);
+
+	    // try to trace back to a candidate: (still) interior loop case
+	    for ( size_t l=i; l<j; l++) {
+		for ( auto it=CL[l].begin(); CL[l].end()!=it && it->first>i; ++it ) {
+		    const size_t k=it->first;
+		    if (  e == it->second + ILoopE(S,S1,params,ptype_closing,i,j,k,l) ) {
+			trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,k,l,it->second);
+			return;
+		    }
+		}
+	    }
+	}
+	
+	// is this a hairpin?
+	if ( e == HairpinE(seq,S,S1,params,i,j) ) {
+	    return;
+	}
+
+	// if we are still here, trace to wm2 (split case);
+	// in this case, we know the 'trace arrow'; the next row has to be recomputed
+	auto const temp = recompute_WM(WM,CL,S,params,n,i+1,j-1);
+	WM = temp;
+	auto const temp2 = recompute_WM2(WM,WM2,CL,S,params,n,i+1,j-1);
+	WM2 = temp2;
+	
+	trace_WM2(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i+1,j-1);
+}
+/**
+     * @brief Trace from WM
+     *
+     * @param i row index
+     * @param j column index
+     * pre: vector WM is recomputed for row i
+     */
+    void trace_WM(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S, auto const& S1, auto &ta, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates,size_t i, size_t j, energy_t e) {
+	if (i+TURN+1>j) {return;}
+
+	if ( e == WM[j-1] + params->MLbase ) {
+	    trace_WM(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i,j-1,WM[j-1]);
+	    return;
+	}
+
+	for ( auto it=CL[j].begin();CL[j].end() != it && it->first>=i;++it ) {
+	    const size_t k = it->first;
+	    const energy_t v_kj = it->second + E_MLstem(pair[S[k]][S[j]],-1,-1,params);
+	    if ( e == WM[k-1] + v_kj ) {
+		// no recomp, same i
+		trace_WM(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i,k-1,WM[k-1]);
+		trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,k,j,it->second);
+		return;
+	    } else if ( e == static_cast<energy_t>((k-i)*params->MLbase) + v_kj ) {
+		trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,k,j,it->second);
+		return;
+	    }
+	}
+	assert(false);
+}
+
+
 /**
      * @brief Trace from WM2
      *
      * @param i row index
      * @param j column index
      * pre: vectors WM and WM2 are recomputed for row i
-     */
-    void trace_WM2(SparseMFEFold &fold,size_t i, size_t j) {
+	 * auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& S, auto const& S1, auto const& ta, auto &WM, auto &WM2
+     */ 
+    void trace_WM2(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S, auto const& S1, auto &ta, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates,size_t i, size_t j) {
 	if (i+2*TURN+3>j) {return;}
 
-	const energy_t e = fold.WM2_[j];
+	const energy_t e = WM2[j];
 
 	// case j unpaired
-	if ( e == fold.WM2_[j-1] + fold.params_->MLbase ) {
+	if ( e == WM2[j-1] + params->MLbase ) {
 	    // same i, no recomputation
-	    trace_WM2(fold,i,j-1);
+	    trace_WM2(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i,j-1);
 	    return;
 	}
 
-	for ( auto it=fold.CL_[j].begin();fold.CL_[j].end() != it  && it->first>=i+TURN+1;++it ) {
+	for ( auto it=CL[j].begin();CL[j].end() != it  && it->first>=i+TURN+1;++it ) {
 	    size_t k = it->first;
-	    const energy_t v_kj = it->second + E_MLstem(pair[fold.S_[k]][fold.S_[j]],-1,-1,fold.params_);
-	    if ( e == fold.WM_[k-1] + v_kj ) {
-		trace_WM(fold,i,k-1,fold.WM_[k-1]);
-		trace_V(fold,k,j,it->second);
+	    const energy_t v_kj = it->second + E_MLstem(pair[S[k]][S[j]],-1,-1,params);
+	    if ( e == WM[k-1] + v_kj ) {
+		trace_WM(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i,k-1,WM[k-1]);
+		trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,k,j,it->second);
 		return;
 	    }
 	}
@@ -353,158 +494,20 @@ auto const recompute_W(auto const &W, auto const& CL, size_t i, size_t max_j) {
      * pre: row 1 of matrix W is computed
      * @return mfe structure (reference)
      */
-    const std::string & trace_back(SparseMFEFold &fold,bool mark_candidates=false) {
-	fold.mark_candidates_=mark_candidates;
+    const std::string & trace_back(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S, auto const& S1, auto &ta, auto const& W, auto &WM, auto &WM2, auto const& n,auto const& mark_candidates=false) {
 
-	fold.structure_.resize(fold.n_+1,'.');
+	structure.resize(n+1,'.');
 
 	/* Traceback */
-	trace_W(fold,1,fold.n_);
-	fold.structure_ = fold.structure_.substr(1,fold.n_);
+	trace_W(seq,CL,cand_comp,structure,params,S,S1,ta,W,WM,WM2,n,mark_candidates,1,n);
+	structure = structure.substr(1,n);
 
-	return fold.structure_;
-}
-
-/**
-     * @brief Trace from WM
-     *
-     * @param i row index
-     * @param j column index
-     * pre: vector WM is recomputed for row i
-     */
-    void trace_WM( SparseMFEFold &fold,size_t i, size_t j, energy_t e) {
-	if (i+TURN+1>j) {return;}
-
-	if ( e == fold.WM_[j-1] + fold.params_->MLbase ) {
-	    trace_WM(fold,i,j-1,fold.WM_[j-1]);
-	    return;
-	}
-
-	for ( auto it=fold.CL_[j].begin();fold.CL_[j].end() != it && it->first>=i;++it ) {
-	    const size_t k = it->first;
-	    const energy_t v_kj = it->second + E_MLstem(pair[fold.S_[k]][fold.S_[j]],-1,-1,fold.params_);
-	    if ( e == fold.WM_[k-1] + v_kj ) {
-		// no recomp, same i
-		trace_WM(fold,i,k-1,fold.WM_[k-1]);
-		trace_V(fold,k,j,it->second);
-		return;
-	    } else if ( e == static_cast<energy_t>((k-i)*fold.params_->MLbase) + v_kj ) {
-		trace_V(fold,k,j,it->second);
-		return;
-	    }
-	}
-	assert(false);
-}
-
-/**
-     * @brief Trace from V entry
-     *
-     * @param i row index
-     * @param j column index
-     * @param energy energy in V[i,j]
-     *
-     * pre: structure is string of size (n+1)
-     */
-    void trace_V( SparseMFEFold &fold, size_t i, size_t j, energy_t e ) {
-	// std::cout << "trace_V "<<i<<" "<<j<<std::endl;
-
-	assert( i+TURN+1<=j );
-	assert( j<=n_ );
-
-	if (fold.mark_candidates_ && is_candidate(fold.CL_,fold.cand_comp,i,j)) {
-	    fold.structure_[i]='[';
-	    fold.structure_[j]=']';
-	} else {
-	    fold.structure_[i]='(';
-	    fold.structure_[j]=')';
-	}
-
-	const int ptype_closing = pair[fold.S_[i]][fold.S_[j]];
-
-	if (exists_trace_arrow_from(fold.ta_,i,j)) {
-	    // trace arrows may exist for interior loop case
-	    const TraceArrow &arrow = trace_arrow_from(fold.ta_,i,j);
-
-	    const size_t k=arrow.k(i,j);
-	    const size_t l=arrow.l(i,j);
-	    assert(i<k);
-	    assert(l<j);
-	    trace_V(fold,k,l, arrow.target_energy());
-	    return;
-
-	} else {
-
-	    assert(ptype_closing>0);
-
-	    // try to trace back to a candidate: (still) interior loop case
-	    for ( size_t l=i; l<j; l++) {
-		for ( auto it=fold.CL_[l].begin(); fold.CL_[l].end()!=it && it->first>i; ++it ) {
-		    const size_t k=it->first;
-		    if (  e == it->second + ILoopE(fold.S_,fold.S1_,fold.params_,ptype_closing,i,j,k,l) ) {
-			trace_V(fold,k,l,it->second);
-			return;
-		    }
-		}
-	    }
-	}
-	
-	// is this a hairpin?
-	if ( e == HairpinE(fold.seq_,fold.S_,fold.S1_,fold.params_,i,j) ) {
-	    return;
-	}
-
-	// if we are still here, trace to wm2 (split case);
-	// in this case, we know the 'trace arrow'; the next row has to be recomputed
-	auto const temp = recompute_WM(fold.WM_,fold.CL_,fold.S_,fold.params_,fold.n_,i+1,j-1);
-	fold.WM_ = temp;
-	auto const temp2 = recompute_WM2(fold.WM_,fold.WM2_,fold.CL_,fold.S_,fold.params_,fold.n_,i+1,j-1);
-	fold.WM2_ = temp2;
-	
-	trace_WM2(fold,i+1,j-1);
-}
-/**
-     * @brief Trace from W entry
-     *
-     * @param i row index
-     * @param j column index
-     * pre: W contains values of row i in interval i..j
-     */
-    void trace_W(SparseMFEFold &fold, size_t i, size_t j) {
-	// std::cout << "Trace W "<<i<<" "<<j<<std::endl;
-	if (i+TURN+1>=j) return;
-
-	// case j unpaired
-	if (fold.W_[j] == fold.W_[j-1]) {
-	    trace_W(fold,i,j-1);
-	    return;
-	}
-
-	size_t k=j+1;
-	energy_t v=INF;
-
-	// determine best split W -> W V
-	for ( auto it = fold.CL_[j].begin();fold.CL_[j].end()!=it && it->first>=i;++it ) {
-	    k = it->first;
-	    const energy_t v_kj = it->second + E_ExtLoop(pair[fold.S_[k]][fold.S_[j]],-1,-1,fold.params_);
-	    const energy_t w = fold.W_[k-1] + v_kj;
-
-	    if (fold.W_[j] == w) {
-		v = it->second;
-		break;
-	    }
-	}
-
-	assert(i<=k && k<j);
-	assert(v<INF);
-
-	// don't recompute W, since i is not changed
-	trace_W(fold,i,k-1);
-	trace_V(fold,k,j,v);
+	return structure;
 }
 
 
 /* pre: ptype_closing>0 */
-energy_t ILoopE(auto const& S_, auto const& S1_, auto const& params_, int ptype_closing,size_t i, size_t j, size_t k,  size_t l)  {
+energy_t ILoopE(auto const& S, auto const& S1, auto const& params, int ptype_closing,size_t i, size_t j, size_t k,  size_t l)  {
 	assert(ptype_closing>0);
 	assert(1<=i);
 	assert(i<k);
@@ -513,11 +516,11 @@ energy_t ILoopE(auto const& S_, auto const& S1_, auto const& params_, int ptype_
 	//assert(l<=len); // don't know len here
 
 	// note: enclosed bp type 'turned around' for lib call
-	const int ptype_enclosed = rtype[pair[S_[k]][S_[l]]];
+	const int ptype_enclosed = rtype[pair[S[k]][S[l]]];
 
 	if (ptype_enclosed==0) return INF;
 
-	return E_IntLoop(k-i-1,j-l-1,ptype_closing,ptype_enclosed,S1_[i+1],S1_[j-1],S1_[k-1],S1_[l+1],const_cast<paramT *>(params_));
+	return E_IntLoop(k-i-1,j-l-1,ptype_closing,ptype_enclosed,S1[i+1],S1[j-1],S1[k-1],S1[l+1],const_cast<paramT *>(params));
 }
 
 
@@ -527,9 +530,9 @@ energy_t ILoopE(auto const& S_, auto const& S1_, auto const& params_, int ptype_
 * @param j end
 * @param e energy of candidate "V(i,j)"
 */
-void register_candidate(SparseMFEFold &fold, size_t i, size_t j, energy_t e) {
+void register_candidate(auto &CL, size_t i, size_t j, energy_t e) {
 	assert(i<=j+TURN+1);
-	fold.CL_[j].push_back( cand_entry_t(i, e) );
+	CL[j].push_back( cand_entry_t(i, e) );
 }
 
 std::pair< energy_t, energy_t > split_cases( auto const& CL, auto const& WM, auto const& S, auto const& params, int i, int j ) {
@@ -547,15 +550,15 @@ std::pair< energy_t, energy_t > split_cases( auto const& CL, auto const& WM, aut
 	return std::make_pair( wm_split, wm2_split );
 
 }
-energy_t fold(SparseMFEFold &fold) {
-	for (size_t i=fold.n_; i>0; --i) {
+energy_t fold(SparseMFEFold &fold,auto &CL, auto const& n, auto const& garbage_collect) {
+	for (size_t i=n; i>0; --i) {
 		energy_t WM2_ip1_jm1 = INF;
-		for ( size_t j=i+TURN+1; j<=fold.n_; j++ ) {
+		for ( size_t j=i+TURN+1; j<=n; j++ ) {
 
 			// ------------------------------
 			// W: split case
 			energy_t w_split = INF;
-			for ( auto const [key,val] : fold.CL_[j] ) {
+			for ( auto const [key,val] : CL[j] ) {
 				size_t k=key;
 				energy_t v_kj = val + E_ExtLoop(pair[fold.S_[k]][fold.S_[j]],-1,-1,fold.params_);
 				w_split = std::min( w_split, fold.W_[k-1] + v_kj );
@@ -564,7 +567,7 @@ energy_t fold(SparseMFEFold &fold) {
 
 			// ------------------------------
 			// WM and WM2: split cases
-			auto [wm_split, wm2_split] = split_cases( fold.CL_[j], fold.WM_,fold.S_, fold.params_,i,j);
+			auto [wm_split, wm2_split] = split_cases( CL[j], fold.WM_,fold.S_, fold.params_,i,j);
 
 			wm2_split = std::min( wm2_split, fold.WM2_[j-1] + fold.params_->MLbase );
 			wm_split = std::min( wm_split, fold.WM_[j-1] + fold.params_->MLbase );
@@ -636,7 +639,7 @@ energy_t fold(SparseMFEFold &fold) {
 
 				// register required trace arrows from (i,j)
 				if ( v_iloop < std::min(v_h,v_split) ) {
-					if ( is_candidate(fold.CL_,fold.cand_comp,best_k,best_l) ) {
+					if ( is_candidate(CL,fold.cand_comp,best_k,best_l) ) {
 						//std::cout << "Avoid TA "<<best_k<<" "<<best_l<<std::endl;
 						avoid_trace_arrow(fold.ta_);
 					} else {
@@ -650,7 +653,7 @@ energy_t fold(SparseMFEFold &fold) {
 
 					//std::cout << "Reg Cand "<<i<<","<<j<<std::endl;
 
-					register_candidate( fold, i, j, v );
+					register_candidate(CL, i, j, v );
 
 					// always keep arrows starting from candidates
 					inc_source_ref_count(fold.ta_,i,j);
@@ -674,7 +677,7 @@ energy_t fold(SparseMFEFold &fold) {
 		} // end loop j
 
 		// Clean up trace arrows in i+MAXLOOP+1
-		if ( fold.garbage_collect_ && i+MAXLOOP+1 <= fold.n_) {
+		if (garbage_collect && i+MAXLOOP+1 <= n) {
 			gc_row(fold.ta_,i + MAXLOOP + 1 );
 		}
 
@@ -690,7 +693,7 @@ energy_t fold(SparseMFEFold &fold) {
 		compactify(fold.ta_);
 	}
 
-	return fold.W_[fold.n_];
+	return fold.W_[n];
 }
 
 
@@ -758,9 +761,9 @@ main(int argc,char **argv) {
     std::cout << seq << std::endl;
     //std::cout << "Len:\t"<<seq.length()<<std::endl<<std::endl;
 
-    energy_t mfe = fold(sparsemfefold);
+    energy_t mfe = fold(sparsemfefold,sparsemfefold.CL_,sparsemfefold.n_,sparsemfefold.garbage_collect_);
 
-    std::string structure = trace_back(sparsemfefold, mark_candidates);
+    std::string structure = trace_back(sparsemfefold.seq_,sparsemfefold.CL_,sparsemfefold.cand_comp,sparsemfefold.structure_,sparsemfefold.params_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.ta_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_,sparsemfefold.n_, mark_candidates);
 
     std::ostringstream smfe;
     smfe << std::setw(6) << std::setiosflags(std::ios::fixed) << std::setprecision(2) << mfe/100.0 ;

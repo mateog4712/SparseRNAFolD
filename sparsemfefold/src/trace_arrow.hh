@@ -72,26 +72,7 @@ public:
      * @brief Construct for sequence of specific length
      * @param n sequence length
      */
-    TraceArrows(size_t n);
-
-    // void
-    // resize(size_t n);
-
-    /**
-     * Get target of trace arrow by source (const)
-     *
-     * @param i source row index
-     * @param j source column index
-     */
-    const TraceArrow &
-    trace_arrow_from(size_t i, size_t j) const {
-	return trace_arrow_[i].find(j)->second;
-    }
-
-    
-
-    
-    
+    TraceArrows(size_t n);  
 };
 
 

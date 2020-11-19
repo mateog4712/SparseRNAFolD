@@ -79,7 +79,7 @@
 
 extern "C" {
 #include "ViennaRNA/pair_mat.h"
-#include "ViennaRNA/loop_energies.h"
+#include "ViennaRNA/loops/all.h"
 }
 
 #include "SparseMFEFold_cmdline.h"
@@ -697,12 +697,6 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 }
 
 
-
-
-
-
-
-
 size_t num_of_candidates(auto const& CL_)  {
 	size_t c=0;
 	for ( auto const &x: CL_ ) {
@@ -710,10 +704,6 @@ size_t num_of_candidates(auto const& CL_)  {
 	}
 	return c;
 }
-
-TraceArrows & ta(SparseMFEFold &fold){
-	return fold.ta_;
-    }
 
 size_t capacity_of_candidates(auto const& CL_) {
 	size_t c=0;
@@ -780,18 +770,16 @@ main(int argc,char **argv) {
 
 	std::cout <<std::endl;
 
-	std::cout << "TA cnt:\t"<<sizeT(ta(sparsemfefold))<<std::endl;
-	std::cout << "TA max:\t"<<maxT(ta(sparsemfefold))<<std::endl;
-	std::cout << "TA av:\t"<<avoidedT(ta(sparsemfefold))<<std::endl;
-	std::cout << "TA rm:\t"<<erasedT(ta(sparsemfefold))<<std::endl;
-	// std::cout << "TA rm:\t"<<ta(sparsemfefold).erased()<<std::endl;
+	std::cout << "TA cnt:\t"<<sizeT(sparsemfefold.ta_)<<std::endl;
+	std::cout << "TA max:\t"<<maxT(sparsemfefold.ta_)<<std::endl;
+	std::cout << "TA av:\t"<<avoidedT(sparsemfefold.ta_)<<std::endl;
+	std::cout << "TA rm:\t"<<erasedT(sparsemfefold.ta_)<<std::endl;
 
 	std::cout <<std::endl;
 	std::cout << "Can num:\t"<<num_of_candidates(sparsemfefold.CL_)<<std::endl;
 	std::cout << "Can cap:\t"<<capacity_of_candidates(sparsemfefold.CL_)<<std::endl;
-	std::cout << "TAs num:\t"<<sizeT(ta(sparsemfefold))<<std::endl;
-	// std::cout << "TAs cap:\t"<<ta(sparsemfefold).capacity()<<std::endl;
-	std::cout << "TAs cap:\t"<<capacityT(ta(sparsemfefold))<<std::endl;
+	std::cout << "TAs num:\t"<<sizeT(sparsemfefold.ta_)<<std::endl;
+	std::cout << "TAs cap:\t"<<capacityT(sparsemfefold.ta_)<<std::endl;
     }
 
     return 0;

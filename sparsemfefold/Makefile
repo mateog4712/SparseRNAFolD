@@ -191,7 +191,7 @@ am__DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/config.h.in \
 	$(top_srcdir)/aminclude.am $(top_srcdir)/config/compile \
 	$(top_srcdir)/config/install-sh $(top_srcdir)/config/missing \
 	AUTHORS COPYING ChangeLog INSTALL NEWS README config/compile \
-	config/install-sh config/missing
+	config/depcomp config/install-sh config/missing
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -234,21 +234,21 @@ distuninstallcheck_listfiles = find . -type f -print
 am__distuninstallcheck_listfiles = $(distuninstallcheck_listfiles) \
   | sed 's|^\./|$(prefix)/|' | grep -v '$(infodir)/dir$$'
 distcleancheck_listfiles = find . -type f -print
-ACLOCAL = ${SHELL} /home/hiseric1/Desktop/DMproject/sparse_2/our_sparse/sparsemfe/sparsemfefold/config/missing aclocal-1.16
+ACLOCAL = ${SHELL} /home/mgray7/Documents/sparsemfe/sparsemfefold/config/missing aclocal-1.16
 AMTAR = $${TAR-tar}
 AM_DEFAULT_VERBOSITY = 1
-AUTOCONF = ${SHELL} /home/hiseric1/Desktop/DMproject/sparse_2/our_sparse/sparsemfe/sparsemfefold/config/missing autoconf
-AUTOHEADER = ${SHELL} /home/hiseric1/Desktop/DMproject/sparse_2/our_sparse/sparsemfe/sparsemfefold/config/missing autoheader
-AUTOMAKE = ${SHELL} /home/hiseric1/Desktop/DMproject/sparse_2/our_sparse/sparsemfe/sparsemfefold/config/missing automake-1.16
+AUTOCONF = ${SHELL} /home/mgray7/Documents/sparsemfe/sparsemfefold/config/missing autoconf
+AUTOHEADER = ${SHELL} /home/mgray7/Documents/sparsemfe/sparsemfefold/config/missing autoheader
+AUTOMAKE = ${SHELL} /home/mgray7/Documents/sparsemfe/sparsemfefold/config/missing automake-1.16
 AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
 CFLAGS = -g -O2
-CPPFLAGS = -I/home/hiseric1/Programs/Vienna
+CPPFLAGS = 
 CXX = g++
 CXXCPP = g++ -E
 CXXDEPMODE = depmode=gcc3
-CXXFLAGS = -pthread -I/home/hiseric1/Programs/Vienna/include -I/home/hiseric1/Programs/Vienna/include/ViennaRNA -g -O2 -std=gnu++11 -O3 -fomit-frame-pointer
+CXXFLAGS = -I/ViennaRNA -g -O2 -O3 -fomit-frame-pointer
 CYGPATH_W = echo
 DEFS = -DHAVE_CONFIG_H
 DEPDIR = .deps
@@ -290,11 +290,11 @@ INSTALL_DATA = ${INSTALL} -m 644
 INSTALL_PROGRAM = ${INSTALL}
 INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
-LDFLAGS =  
+LDFLAGS = 
 LIBOBJS = 
-LIBS = -L/home/hiseric1/Programs/Vienna/lib -lRNA -fopenmp -lgsl -lgslcblas -lmpfr -lgmp 
+LIBS = hBfno-lto -L/ViennaRNA/.libs 
 LTLIBOBJS = 
-MAKEINFO = ${SHELL} /home/hiseric1/Desktop/DMproject/sparse_2/our_sparse/sparsemfe/sparsemfefold/config/missing makeinfo
+MAKEINFO = ${SHELL} /home/mgray7/Documents/sparsemfe/sparsemfefold/config/missing makeinfo
 MKDIR_P = /usr/bin/mkdir -p
 OBJEXT = o
 PACKAGE = sparsemfefold
@@ -305,20 +305,14 @@ PACKAGE_TARNAME = sparsemfefold
 PACKAGE_URL = 
 PACKAGE_VERSION = 0.5
 PATH_SEPARATOR = :
-PKG_CONFIG = /home/hiseric1/.linuxbrew/bin/pkg-config
-PKG_CONFIG_AVAILABLE = true
-PKG_CONFIG_LIBDIR = 
-PKG_CONFIG_PATH = /home/hiseric1/Desktop/DMproject/ViennaRNA-2.4.14
 SET_MAKE = 
 SHELL = /bin/sh
 STRIP = 
 VERSION = 0.5
-VRNA_CFLAGS = -pthread -I/home/hiseric1/Programs/Vienna/include -I/home/hiseric1/Programs/Vienna/include/ViennaRNA
-VRNA_LIBS = -L/home/hiseric1/Programs/Vienna/lib -lRNA -fopenmp -lgsl -lgslcblas -lmpfr -lgmp
-abs_builddir = /home/hiseric1/Desktop/DMproject/sparse_2/our_sparse/sparsemfe/sparsemfefold
-abs_srcdir = /home/hiseric1/Desktop/DMproject/sparse_2/our_sparse/sparsemfe/sparsemfefold
-abs_top_builddir = /home/hiseric1/Desktop/DMproject/sparse_2/our_sparse/sparsemfe/sparsemfefold
-abs_top_srcdir = /home/hiseric1/Desktop/DMproject/sparse_2/our_sparse/sparsemfe/sparsemfefold
+abs_builddir = /home/mgray7/Documents/sparsemfe/sparsemfefold
+abs_srcdir = /home/mgray7/Documents/sparsemfe/sparsemfefold
+abs_top_builddir = /home/mgray7/Documents/sparsemfe/sparsemfefold
+abs_top_srcdir = /home/mgray7/Documents/sparsemfe/sparsemfefold
 ac_ct_CC = gcc
 ac_ct_CXX = g++
 am__include = include
@@ -338,7 +332,7 @@ host_alias =
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = ${SHELL} /home/hiseric1/Desktop/DMproject/sparse_2/our_sparse/sparsemfe/sparsemfefold/config/install-sh
+install_sh = ${SHELL} /home/mgray7/Documents/sparsemfe/sparsemfefold/config/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localedir = ${datarootdir}/locale
@@ -347,7 +341,7 @@ mandir = ${datarootdir}/man
 mkdir_p = $(MKDIR_P)
 oldincludedir = /usr/include
 pdfdir = ${docdir}
-prefix = /home/hiseric1/Programs/SparseOurs
+prefix = /home/mgray7/Documents/includes/sparsemfe
 program_transform_name = s,x,x,
 psdir = ${docdir}
 sbindir = ${exec_prefix}/sbin

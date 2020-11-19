@@ -75,15 +75,8 @@ AC_CHECK_PROG([GENGETOPT_AVAILABLE],gengetopt,[true],[false])
 
 AC_CHECK_PROG([PKG_CONFIG_AVAILABLE],pkg-config,[true],[false])
 
-VRNALIB_OK=false
-
-AS_IF([test "$PKG_CONFIG_AVAILABLE" = "true"],[
-   dnl call pkg-config (macro PKG_CHECK_MODULES) to set VRNA_LIBS and VRNA_CFLAGS
-   PKG_CHECK_MODULES([VRNA],[RNAlib2 >= 2.2.5],[VRNALIB_OK=true],[VRNALIB_OK=false])
-   CXXFLAGS="$VRNA_CFLAGS $CXXFLAGS"
-   LDFLAGS="$VRNA_LDFLAGS $LDFLAGS"
-   LIBS="$VRNA_LIBS $LIBS"
-])
+CXXFLAGS="-I../ViennaRNA"   
+LIBS="-fno-lto -Wl,-fno-lto -L../ViennaRNA -lRNA  -fopenmp"
 
 dnl ###################
 dnl  Static linking
@@ -114,14 +107,6 @@ dnl  BEGIN DO NOT COMPILE CHECKS
 dnl ##############################################################################
 
 DEPENDENCYNOTFOUND=0;
-
-dnl  error if ViennaRNA not found
-if test "$VRNALIB_OK" != "true"; then
-    AC_MSG_NOTICE()
-    AC_MSG_NOTICE([The Vienna RNA library (or pkg-config) is missing.])
-    AC_MSG_NOTICE()
-    DEPENDENCYNOTFOUND=1;
-fi
 
 
 

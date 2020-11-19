@@ -763,7 +763,7 @@ main(int argc,char **argv) {
     size_t n=seq.length();
 
     float factor=1024;
-	int ten = 5;
+	
     const std::string unit=" kB";
 
     if (verbose) {

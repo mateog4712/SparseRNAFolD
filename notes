@@ -9,8 +9,7 @@ autoconf (again)
 
 
 If gengetopt is not installed, run thus
-./configure --prefix=/home/mgray7/Documents/includes/sparsemfe PKG_CONFIG_PATH=/home/mgray7/Documents/sparsemfe/sparsemfefold
-// ./configure --prefix=/home/mgray7/includes/sparsemfe
+ ./configure --prefix=/home/mgray7/includes/sparsemfe
 
 then do export PATH=$PATH:/home/mgray7/includes/gengetopt/bin
 
@@ -18,11 +17,8 @@ make
 
 make install
 If it is, run this
-./configure --prefix=/home/mgray7/Documents/includes/sparsemfe PKG_CONFIG_PATH=/home/mgray7/Documents/sparsemfe/sparsemfefold
-make 
 
-
-// ./configure --prefix=/home/mgray7/Documents/includes/sparsemfe
+./configure --prefix=/home/mgray7/Documents/includes/sparsemfe
 make 
 
 make install

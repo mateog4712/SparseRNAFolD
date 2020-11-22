@@ -82,7 +82,7 @@ extern "C" {
 #include "ViennaRNA/loops/all.h"
 }
 
-#include "SparseMFEFold_cmdline.h"
+#include "cmdline.hh"
 
 
 
@@ -722,7 +722,7 @@ size_t capacity_of_candidates(auto const& CL_) {
 int
 main(int argc,char **argv) {
 
-    gengetopt_args_info args_info;
+    args_info args_info;
 
     // get options (call gengetopt command line parser)
     if (cmdline_parser (argc, argv, &args_info) != 0) {

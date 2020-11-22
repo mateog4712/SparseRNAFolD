@@ -157,8 +157,8 @@ PRIVATE void
 print_state(STATE *state);
 
 
-PRIVATE void
-UNUSED print_stack(LIST *list);
+// PRIVATE void
+// UNUSED print_stack(LIST *list);
 
 
 PRIVATE LIST *
@@ -429,19 +429,19 @@ print_state(STATE *state)
 
 /*---------------------------------------------------------------------------*/
 
-/*@unused @*/ PRIVATE void
-print_stack(LIST *list)
-{
-  void *rec;
+// /*@unused @*/ PRIVATE void
+// print_stack(LIST *list)
+// {
+//   void *rec;
 
-  printf("================\n");
-  printf("%d states\n", list->count);
-  for (rec = lst_first(list); rec; rec = lst_next(rec)) {
-    printf("state-----------\n");
-    print_state(rec);
-  }
-  printf("================\n");
-}
+//   printf("================\n");
+//   printf("%d states\n", list->count);
+//   for (rec = lst_first(list); rec; rec = lst_next(rec)) {
+//     printf("state-----------\n");
+//     print_state(rec);
+//   }
+//   printf("================\n");
+// }
 
 
 /*---------------------------------------------------------------------------*/

@@ -5,7 +5,7 @@
 
 extern "C" {
 #   include "ViennaRNA/pair_mat.h"
-#   include "ViennaRNA/loop_energies.h"
+#   include "ViennaRNA/loops/all.h"
 }
 
 int

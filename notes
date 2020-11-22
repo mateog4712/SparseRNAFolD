@@ -1,24 +1,2 @@
-autoreconf -i
-automake
-autoconf
-
-if gengetopt is not installed via rpm,etc and is in a folder then, in configure.ac, add after [false]
-[/home/mgray7/includes/gengetopt/bin]
-
-autoconf (again)
-
-
-If gengetopt is not installed, run thus
- ./configure --prefix=/home/mgray7/includes/sparsemfe
-
-then do export PATH=$PATH:/home/mgray7/includes/gengetopt/bin
-
-make 
-
-make install
-If it is, run this
-
-./configure --prefix=/home/mgray7/Documents/includes/sparsemfe
-make 
-
-make install
+cmake -H. -Bbuild -DCMAKE_CXX_COMPILER=g++
+cmake --build build

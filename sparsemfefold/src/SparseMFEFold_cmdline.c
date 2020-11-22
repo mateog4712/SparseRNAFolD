@@ -40,7 +40,7 @@ const char *gengetopt_args_info_help[] = {
   "  -m, --mark-candidates  Represent candidate base pairs by square brackets",
   "      --noGC             Turn off garbage collection and related overhead",
   "\nThe input sequence is read from standard input, unless it is\ngiven on the command line.\n",
-    0
+  
 };
 
 typedef enum {ARG_NO

@@ -1,8 +1,0 @@
-/home/mgray7/Documents/sparsemfe/sparsemfefold/build/CMakeFiles/rebuild_cache.dir
-/home/mgray7/Documents/sparsemfe/sparsemfefold/build/CMakeFiles/edit_cache.dir
-/home/mgray7/Documents/sparsemfe/sparsemfefold/build/src/CMakeFiles/rebuild_cache.dir
-/home/mgray7/Documents/sparsemfe/sparsemfefold/build/src/CMakeFiles/SparseMFEFold.dir
-/home/mgray7/Documents/sparsemfe/sparsemfefold/build/src/CMakeFiles/edit_cache.dir
-/home/mgray7/Documents/sparsemfe/sparsemfefold/build/ViennaRNA/CMakeFiles/rebuild_cache.dir
-/home/mgray7/Documents/sparsemfe/sparsemfefold/build/ViennaRNA/CMakeFiles/RNA.dir
-/home/mgray7/Documents/sparsemfe/sparsemfefold/build/ViennaRNA/CMakeFiles/edit_cache.dir

@@ -1,1 +1,0 @@
-/usr/bin/g++    -fconcepts   CMakeFiles/SparseMFEFold.dir/cmdline.cc.o CMakeFiles/SparseMFEFold.dir/trace_arrow.cc.o CMakeFiles/SparseMFEFold.dir/SparseMFEFold_1.cc.o  -o ../../src/SparseMFEFold ../ViennaRNA/libRNA.a 

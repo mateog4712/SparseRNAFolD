@@ -557,7 +557,7 @@ struct w_split_cost {
 	size_t j, i;
 	short * S;
 
-	const std::vector<energy_t>WM_;
+	const std::vector<energy_t>& WM_;
 
 	paramT * params;
 	energy_t operator () ( energy_t prev_best, auto const& key_val ) const {

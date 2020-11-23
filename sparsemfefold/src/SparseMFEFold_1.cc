@@ -1,63 +1,63 @@
 /**
- * @mainpage
- *
- * Space-efficient sparse variant of an RNA (loop-based) free energy
- * minimization algorithm (RNA folding equivalent to the Zuker
- * algorithm).
- *
- * The results are equivalent to RNAfold -d0.
- *
- * Demonstration of space-efficient sparsification with trace-back.
- *
- * Since many matrix entries can not be efficiently recomputed in
- * trace back, we store trace arrows to such entries. To save space,
- * trace arrows are gc'ed and trace arrows to candidates are omitted
- * and reconstructed in trace back.
- *
- * ----------------------------------------
- * Specific recursions:
+* @mainpage
+*
+* Space-efficient sparse variant of an RNA (loop-based) free energy
+* minimization algorithm (RNA folding equivalent to the Zuker
+* algorithm).
+*
+* The results are equivalent to RNAfold -d0.
+*
+* Demonstration of space-efficient sparsification with trace-back.
+*
+* Since many matrix entries can not be efficiently recomputed in
+* trace back, we store trace arrows to such entries. To save space,
+* trace arrows are gc'ed and trace arrows to candidates are omitted
+* and reconstructed in trace back.
+*
+* ----------------------------------------
+* Specific recursions:
 
-  W(i,j) = min { W(i,j-1);
-                 min_i<k<j  W(i,k-1) + V(k,j) <-- W (same i), CLW;
-                 V(i,j);
-		 0 if i>=j-m
-		 }
+W(i,j) = min { W(i,j-1);
+				min_i<k<j  W(i,k-1) + V(k,j) <-- W (same i), CLW;
+				V(i,j);
+		0 if i>=j-m
+		}
 
-  V(i,j) = min { HairpinE(i,j);
-		 min_kl V(i,j)+ILoopE(i,j,k,l) <-- TAs;
-		 WM2(i+1,j-1) + a <-- WM2, no TAs;
-		 }
+V(i,j) = min { HairpinE(i,j);
+		min_kl V(i,j)+ILoopE(i,j,k,l) <-- TAs;
+		WM2(i+1,j-1) + a <-- WM2, no TAs;
+		}
 
-  WM(i,j) = min { V(i,j)+b      <-- candidate in recomp;
-		  WM(i,j-1) + c <-- ! not via candidate list;
-                  min_i<k<j (k-i)*c + V(k,j) + b <-- CLWM   ( trick to save trace arrows );
-                  min_i<k<j  WM(i,k-1) + V(k,j) + b  <-- WM, CLWM;
-		  INF if i>=j-m
-		  }
+WM(i,j) = min { V(i,j)+b      <-- candidate in recomp;
+		WM(i,j-1) + c <-- ! not via candidate list;
+				min_i<k<j (k-i)*c + V(k,j) + b <-- CLWM   ( trick to save trace arrows );
+				min_i<k<j  WM(i,k-1) + V(k,j) + b  <-- WM, CLWM;
+		INF if i>=j-m
+		}
 
-  WM2(i,j) = min{ WM2(i,j-1) + c;
-                  min_i<k<j  WM(i,k-1) + V(k,j) + b }  <-- WM, CLWM, no TAs;
+WM2(i,j) = min{ WM2(i,j-1) + c;
+				min_i<k<j  WM(i,k-1) + V(k,j) + b }  <-- WM, CLWM, no TAs;
 
-  * ----------------------------------------
-  * Candidate criteria:
-  *
-  (i,j) is a candidate for the split in W if
-  V(i,j)      < min {
-                    W(i,j-1);
-		    min_i<k<j  W(i,k-1) + V(k,j)
-                    }
+* ----------------------------------------
+* Candidate criteria:
+*
+(i,j) is a candidate for the split in W if
+V(i,j)      < min {
+					W(i,j-1);
+			min_i<k<j  W(i,k-1) + V(k,j)
+					}
 
-  (i,j) is a candidate for the split in WM if
-  V(i,j) + b  < min {
-                    WM(i,j-1)+c;
-		    min_i<k<j (k-i)*c + V(k,j) + b;
-		    min_i<k<j  WM(i,k-1) + V(k,j) + b
-                    }
+(i,j) is a candidate for the split in WM if
+V(i,j) + b  < min {
+					WM(i,j-1)+c;
+			min_i<k<j (k-i)*c + V(k,j) + b;
+			min_i<k<j  WM(i,k-1) + V(k,j) + b
+					}
 
- *
- * For simplicity and space savings, we store all candidates that
- * meet either criterion in the same list.
- */
+*
+* For simplicity and space savings, we store all candidates that
+* meet either criterion in the same list.
+*/
 
 #include <iostream>
 #include <iomanip>
@@ -73,6 +73,7 @@
 
 #include <cstring>
 #include <cassert>
+#include <numeric>
 
 #include "base.hh"
 #include "trace_arrow.hh"
@@ -101,65 +102,65 @@ void trace_W(auto const& seq, auto const& CL, auto const& cand_comp, auto &struc
 void trace_WM(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S, auto const& S1, auto &ta, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates, size_t i, size_t j, energy_t e) ;
 void trace_WM2(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S, auto const& S1, auto &ta, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates,size_t i, size_t j);
 /**
- * Space efficient sparsification of Zuker-type RNA folding with
- * trace-back. Provides methods for the evaluation of dynamic
- * programming recursions and the trace-back.
- */
+* Space efficient sparsification of Zuker-type RNA folding with
+* trace-back. Provides methods for the evaluation of dynamic
+* programming recursions and the trace-back.
+*/
 class SparseMFEFold {
 
 public:
-    std::string seq_;
-    size_t n_;
+	std::string seq_;
+	size_t n_;
 
-    short *S_;
-    short *S1_;
-    paramT *params_;
+	short *S_;
+	short *S1_;
+	paramT *params_;
 
-    std::string structure_;
-    
+	std::string structure_;
+	
 
-    bool garbage_collect_;
+	bool garbage_collect_;
 
-    LocARNA::Matrix<energy_t> V_; // store V[i..i+MAXLOOP-1][1..n]
-    std::vector<energy_t> W_;
-    std::vector<energy_t> WM_;
-    std::vector<energy_t> WM2_;
+	LocARNA::Matrix<energy_t> V_; // store V[i..i+MAXLOOP-1][1..n]
+	std::vector<energy_t> W_;
+	std::vector<energy_t> WM_;
+	std::vector<energy_t> WM2_;
 
-    bool mark_candidates_;
+	bool mark_candidates_;
 
 
 	TraceArrows ta_;
-    
+	
 	std::vector< cand_list_t > CL_;
 
-    /**
-       candidate list for decomposition in W or WM
+	/**
+	candidate list for decomposition in W or WM
 
-       @note Avoid separate candidate lists CLW and CLWM for split cases in W and
-       WM to save even more space; here, this works after
-       reformulating the recursions such that both split-cases recurse to
-       V-entries. (compare OCTs)
-    */
-    
+	@note Avoid separate candidate lists CLW and CLWM for split cases in W and
+	WM to save even more space; here, this works after
+	reformulating the recursions such that both split-cases recurse to
+	V-entries. (compare OCTs)
+	*/
+	
 
-    // compare candidate list entries by keys (left index i) in descending order
-    struct {
+	// compare candidate list entries by keys (left index i) in descending order
+	struct {
 	bool operator ()(const cand_entry_t &x, size_t y) const {
-	    return x.first > y;
+		return x.first > y;
 	}
-    }
-    cand_comp;
+	}
+	cand_comp;
 
-    
+	
 
 
-    SparseMFEFold(const std::string &seq, bool garbage_collect)
+	SparseMFEFold(const std::string &seq, bool garbage_collect)
 	: seq_(seq),
-	  n_(seq.length()),
-	  params_(scale_parameters()),
-	  ta_(n_),
-          garbage_collect_(garbage_collect)
-    {
+	n_(seq.length()),
+	params_(scale_parameters()),
+	ta_(n_),
+		garbage_collect_(garbage_collect)
+	{
 	make_pair_matrix();
 
 	S_ = encode_sequence(seq.c_str(),0);
@@ -176,15 +177,15 @@ public:
 	CL_.resize(n_+1);
 
 	resize(ta_,n_+1);
-    }
+	}
 
-    
+	
 
-    ~SparseMFEFold() {
+	~SparseMFEFold() {
 	free(params_);
 	free(S_);
 	free(S1_);
-    }
+	}
 };
 
 
@@ -207,33 +208,33 @@ public:
 	if (ptype_closing==0) return INF;
 
 	return E_Hairpin(j-i-1,ptype_closing,S1[i+1],S1[j-1],&seq.c_str()[i-1], const_cast<paramT *>(params));
-    }
+	}
 
 
 
 	/**
-     * @brief Recompute row of W
-     *
-     * @param i row index
-     * @param max_j maximum column index
-     */
+	* @brief Recompute row of W
+	*
+	* @param i row index
+	* @param max_j maximum column index
+	*/
 auto const recompute_W(auto const &W, auto const& CL, size_t i, size_t max_j) {
 	//std::cout << "Compute W " <<i<<" "<<max_j<<std::endl;
 	std::vector<energy_t> temp = W;
 	for ( size_t j=i-1; j<=std::min(i+TURN,max_j); j++ ) { temp[j]=0; }
 	for ( size_t j=i+TURN+1; j<=max_j; j++ ) {
 
-	    energy_t w = INF;
+		energy_t w = INF;
 
-	    // note: the loop covers the case W(i,j)=V(i,j),
-	    // since this is in the candidate list (TBS)
-	    for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>=i ; ++it ) {
+		// note: the loop covers the case W(i,j)=V(i,j),
+		// since this is in the candidate list (TBS)
+		for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>=i ; ++it ) {
 			w = std::min( w, temp[it->first-1] + it->second );
-	    }
-	    // case "j unpaired" is not in the CL (anymore)
-	    w = std::min(w,temp[j-1]);
+		}
+		// case "j unpaired" is not in the CL (anymore)
+		w = std::min(w,temp[j-1]);
 
-	    temp[j] = w;
+		temp[j] = w;
 	}
 	return temp;
 }
@@ -246,7 +247,7 @@ auto const recompute_W(auto const &W, auto const& CL, size_t i, size_t max_j) {
 	* @param i row index
 	* @param max_j maximum column index
 	*/
-    auto const recompute_WM(auto const& WM, auto const CL, auto const& S, auto const &params, auto const& n, size_t i, size_t max_j) {
+	auto const recompute_WM(auto const& WM, auto const CL, auto const& S, auto const &params, auto const& n, size_t i, size_t max_j) {
 	//std::cout << "Compute WM " <<i<<" "<<max_j<<std::endl;
 
 	assert(i>=1);
@@ -257,28 +258,28 @@ auto const recompute_W(auto const &W, auto const& CL, size_t i, size_t max_j) {
 	for ( size_t j=i-1; j<=std::min(i+TURN,max_j); j++ ) { temp[j]=INF; }
 
 	for ( size_t j=i+TURN+1; j<=max_j; j++ ) {
-	    energy_t wm = INF;
+		energy_t wm = INF;
 
-	    for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>=i ; ++it ) {
+		for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>=i ; ++it ) {
 			size_t k = it->first;
 			const energy_t v_kj = it->second + E_MLstem(pair[S[k]][S[j]],-1,-1,params);
 			wm = std::min( wm, static_cast<energy_t>(params->MLbase*(k-i)) + v_kj );
 			wm = std::min( wm, temp[k-1]  + v_kj );
-	    }
-	    wm = std::min(wm, temp[j-1] + params->MLbase);
+		}
+		wm = std::min(wm, temp[j-1] + params->MLbase);
 
-	    temp[j] = wm;
+		temp[j] = wm;
 	}
 	return temp;
 }
 
 	/**
-     * @brief Recompute row of WM2
-     *
-     * @param i row index
-     * @param max_j maximum column index
-     */
-    auto const recompute_WM2(auto const& WM, auto const& WM2, auto const CL, auto const& S, auto const &params, auto const& n, size_t i, size_t max_j) {
+	* @brief Recompute row of WM2
+	*
+	* @param i row index
+	* @param max_j maximum column index
+	*/
+	auto const recompute_WM2(auto const& WM, auto const& WM2, auto const CL, auto const& S, auto const &params, auto const& n, size_t i, size_t max_j) {
 	//std::cout << "Recompute WM2 " <<i<<" "<<max_j<<std::endl;
 
 	assert(i>=1);
@@ -290,50 +291,50 @@ auto const recompute_W(auto const &W, auto const& CL, size_t i, size_t max_j) {
 	for ( size_t j=i-1; j<=std::min(i+2*TURN+2,max_j); j++ ) { temp[j]=INF; }
 
 	for ( size_t j=i+2*TURN+3; j<=max_j; j++ ) {
-	    energy_t wm2 = INF;
+		energy_t wm2 = INF;
 
-	    for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>i+TURN+1 ; ++it ) {
+		for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>i+TURN+1 ; ++it ) {
 			size_t k = it->first;
 			energy_t v_kl= it->second + E_MLstem(pair[S[k]][S[j]],-1,-1,params);
 			wm2 = std::min( wm2, WM[k-1]  + v_kl );
-	    }
-	    wm2 = std::min(wm2, temp[j-1] + params->MLbase);
+		}
+		wm2 = std::min(wm2, temp[j-1] + params->MLbase);
 
-	    temp[j] = wm2;
+		temp[j] = wm2;
 	}
 	return temp;
 }
 
 /**
-     * Test existence of candidate
-     *
-     * @param i start
-     * @param j end
-     *
-     * @return whether (i,j) is candidate for W/WM splits
-     */
+	* Test existence of candidate
+	*
+	* @param i start
+	* @param j end
+	*
+	* @return whether (i,j) is candidate for W/WM splits
+	*/
 	bool is_candidate(auto const& CL,auto const& cand_comp,size_t i, size_t j) {
 	const cand_list_t &list = CL[j];
 
 	auto it = std::lower_bound(list.begin(),list.end(),i,cand_comp);
 
 	return it!=list.end() && it->first==i;
-    }
+	}
 	/**
-     * @brief Trace from W entry
-     *
-     * @param i row index
-     * @param j column index
-     * pre: W contains values of row i in interval i..j
-     */
-    void trace_W(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S, auto const& S1, auto &ta, auto const& W, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates, size_t i, size_t j) {
+	* @brief Trace from W entry
+	*
+	* @param i row index
+	* @param j column index
+	* pre: W contains values of row i in interval i..j
+	*/
+	void trace_W(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S, auto const& S1, auto &ta, auto const& W, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates, size_t i, size_t j) {
 	// std::cout << "Trace W "<<i<<" "<<j<<std::endl;
 	if (i+TURN+1>=j) return;
 
 	// case j unpaired
 	if (W[j] == W[j-1]) {
-	    trace_W(seq,CL,cand_comp,structure,params,S,S1,ta,W,WM,WM2,n,mark_candidates,i,j-1);
-	    return;
+		trace_W(seq,CL,cand_comp,structure,params,S,S1,ta,W,WM,WM2,n,mark_candidates,i,j-1);
+		return;
 	}
 
 	size_t k=j+1;
@@ -341,14 +342,14 @@ auto const recompute_W(auto const &W, auto const& CL, size_t i, size_t max_j) {
 
 	// determine best split W -> W V
 	for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>=i;++it ) {
-	    k = it->first;
-	    const energy_t v_kj = it->second + E_ExtLoop(pair[S[k]][S[j]],-1,-1,params);
-	    const energy_t w = W[k-1] + v_kj;
+		k = it->first;
+		const energy_t v_kj = it->second + E_ExtLoop(pair[S[k]][S[j]],-1,-1,params);
+		const energy_t w = W[k-1] + v_kj;
 
-	    if (W[j] == w) {
+		if (W[j] == w) {
 		v = it->second;
 		break;
-	    }
+		}
 	}
 
 	assert(i<=k && k<j);
@@ -360,15 +361,15 @@ auto const recompute_W(auto const &W, auto const& CL, size_t i, size_t max_j) {
 }
 
 	/**
-     * @brief Trace from V entry
-     *
-     * @param i row index
-     * @param j column index
-     * @param energy energy in V[i,j]
-     *
-     * pre: structure is string of size (n+1)
-     */
-    void trace_V(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S, auto const& S1, auto &ta, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates, size_t i, size_t j, energy_t e ) {
+	* @brief Trace from V entry
+	*
+	* @param i row index
+	* @param j column index
+	* @param energy energy in V[i,j]
+	*
+	* pre: structure is string of size (n+1)
+	*/
+	void trace_V(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S, auto const& S1, auto &ta, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates, size_t i, size_t j, energy_t e ) {
 	// std::cout << "trace_V "<<i<<" "<<j<<std::endl;
 
 	assert( i+TURN+1<=j );
@@ -376,45 +377,45 @@ auto const recompute_W(auto const &W, auto const& CL, size_t i, size_t max_j) {
 
 
 	if (mark_candidates && is_candidate(CL,cand_comp,i,j)) {
-	    structure[i]='[';
-	    structure[j]=']';
+		structure[i]='[';
+		structure[j]=']';
 	} else {
-	    structure[i]='(';
-	    structure[j]=')';
+		structure[i]='(';
+		structure[j]=')';
 	}
 
 	const int ptype_closing = pair[S[i]][S[j]];
 
 	if (exists_trace_arrow_from(ta,i,j)) {
-	    // trace arrows may exist for interior loop case
-	    const TraceArrow &arrow = trace_arrow_from(ta,i,j);
+		// trace arrows may exist for interior loop case
+		const TraceArrow &arrow = trace_arrow_from(ta,i,j);
 
-	    const size_t k=arrow.k(i,j);
-	    const size_t l=arrow.l(i,j);
-	    assert(i<k);
-	    assert(l<j);
-	    trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,k,l, arrow.target_energy());
-	    return;
+		const size_t k=arrow.k(i,j);
+		const size_t l=arrow.l(i,j);
+		assert(i<k);
+		assert(l<j);
+		trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,k,l, arrow.target_energy());
+		return;
 
 	} else {
 
-	    assert(ptype_closing>0);
+		assert(ptype_closing>0);
 
-	    // try to trace back to a candidate: (still) interior loop case
-	    for ( size_t l=i; l<j; l++) {
+		// try to trace back to a candidate: (still) interior loop case
+		for ( size_t l=i; l<j; l++) {
 		for ( auto it=CL[l].begin(); CL[l].end()!=it && it->first>i; ++it ) {
-		    const size_t k=it->first;
-		    if (  e == it->second + ILoopE(S,S1,params,ptype_closing,i,j,k,l) ) {
+			const size_t k=it->first;
+			if (  e == it->second + ILoopE(S,S1,params,ptype_closing,i,j,k,l) ) {
 			trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,k,l,it->second);
 			return;
-		    }
+			}
 		}
-	    }
+		}
 	}
 	
 	// is this a hairpin?
 	if ( e == HairpinE(seq,S,S1,params,i,j) ) {
-	    return;
+		return;
 	}
 
 	// if we are still here, trace to wm2 (split case);
@@ -427,74 +428,74 @@ auto const recompute_W(auto const &W, auto const& CL, size_t i, size_t max_j) {
 	trace_WM2(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i+1,j-1);
 }
 /**
-     * @brief Trace from WM
-     *
-     * @param i row index
-     * @param j column index
-     * pre: vector WM is recomputed for row i
-     */
-    void trace_WM(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S, auto const& S1, auto &ta, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates,size_t i, size_t j, energy_t e) {
+	* @brief Trace from WM
+	*
+	* @param i row index
+	* @param j column index
+	* pre: vector WM is recomputed for row i
+	*/
+	void trace_WM(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S, auto const& S1, auto &ta, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates,size_t i, size_t j, energy_t e) {
 	if (i+TURN+1>j) {return;}
 
 	if ( e == WM[j-1] + params->MLbase ) {
-	    trace_WM(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i,j-1,WM[j-1]);
-	    return;
+		trace_WM(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i,j-1,WM[j-1]);
+		return;
 	}
 
 	for ( auto it=CL[j].begin();CL[j].end() != it && it->first>=i;++it ) {
-	    const size_t k = it->first;
-	    const energy_t v_kj = it->second + E_MLstem(pair[S[k]][S[j]],-1,-1,params);
-	    if ( e == WM[k-1] + v_kj ) {
+		const size_t k = it->first;
+		const energy_t v_kj = it->second + E_MLstem(pair[S[k]][S[j]],-1,-1,params);
+		if ( e == WM[k-1] + v_kj ) {
 		// no recomp, same i
 		trace_WM(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i,k-1,WM[k-1]);
 		trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,k,j,it->second);
 		return;
-	    } else if ( e == static_cast<energy_t>((k-i)*params->MLbase) + v_kj ) {
+		} else if ( e == static_cast<energy_t>((k-i)*params->MLbase) + v_kj ) {
 		trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,k,j,it->second);
 		return;
-	    }
+		}
 	}
 	assert(false);
 }
 
 
 /**
-     * @brief Trace from WM2
-     *
-     * @param i row index
-     * @param j column index
-     * pre: vectors WM and WM2 are recomputed for row i
-	 * auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& S, auto const& S1, auto const& ta, auto &WM, auto &WM2
-     */ 
-    void trace_WM2(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S, auto const& S1, auto &ta, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates,size_t i, size_t j) {
+	* @brief Trace from WM2
+	*
+	* @param i row index
+	* @param j column index
+	* pre: vectors WM and WM2 are recomputed for row i
+	* auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& S, auto const& S1, auto const& ta, auto &WM, auto &WM2
+	*/ 
+	void trace_WM2(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S, auto const& S1, auto &ta, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates,size_t i, size_t j) {
 	if (i+2*TURN+3>j) {return;}
 
 	const energy_t e = WM2[j];
 
 	// case j unpaired
 	if ( e == WM2[j-1] + params->MLbase ) {
-	    // same i, no recomputation
-	    trace_WM2(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i,j-1);
-	    return;
+		// same i, no recomputation
+		trace_WM2(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i,j-1);
+		return;
 	}
 
 	for ( auto it=CL[j].begin();CL[j].end() != it  && it->first>=i+TURN+1;++it ) {
-	    size_t k = it->first;
-	    const energy_t v_kj = it->second + E_MLstem(pair[S[k]][S[j]],-1,-1,params);
-	    if ( e == WM[k-1] + v_kj ) {
+		size_t k = it->first;
+		const energy_t v_kj = it->second + E_MLstem(pair[S[k]][S[j]],-1,-1,params);
+		if ( e == WM[k-1] + v_kj ) {
 		trace_WM(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i,k-1,WM[k-1]);
 		trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,k,j,it->second);
 		return;
-	    }
+		}
 	}
 	assert(false);
 }
 /**
-     * @brief Trace back
-     * pre: row 1 of matrix W is computed
-     * @return mfe structure (reference)
-     */
-    const std::string & trace_back(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S, auto const& S1, auto &ta, auto const& W, auto &WM, auto &WM2, auto const& n,auto const& mark_candidates=false) {
+	* @brief Trace back
+	* pre: row 1 of matrix W is computed
+	* @return mfe structure (reference)
+	*/
+	const std::string & trace_back(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S, auto const& S1, auto &ta, auto const& W, auto &WM, auto &WM2, auto const& n,auto const& mark_candidates=false) {
 
 	structure.resize(n+1,'.');
 
@@ -538,6 +539,7 @@ void register_candidate(auto &CL, size_t i, size_t j, energy_t e) {
 std::pair< energy_t, energy_t > split_cases( auto const& CL, auto const& WM, auto const& S, auto const& params, int i, int j ) {
 	energy_t wm_split = INF;
 	energy_t wm2_split = INF;
+
 	for ( auto const [key,val] : CL) {
 		size_t k = key;
 		energy_t v_kj = val + E_MLstem(pair[S[k]][S[j]],-1,-1,params);
@@ -550,6 +552,65 @@ std::pair< energy_t, energy_t > split_cases( auto const& CL, auto const& WM, aut
 	return std::make_pair( wm_split, wm2_split );
 
 }
+
+struct w_split_cost {
+	size_t j, i;
+	short * S;
+
+	const std::vector<energy_t>WM_;
+
+	paramT * params;
+	energy_t operator () ( energy_t prev_best, auto const& key_val ) const {
+		size_t k = key_val.first ;
+
+		energy_t v_kj = key_val.second + E_MLstem(pair[S[k]][S[j]],-1,-1,params);
+		return std::min( prev_best, 
+					std::min(energy_t(v_kj + WM_[k - 1])
+							, v_kj + static_cast<energy_t>((k-i)*params->MLbase) ) );
+	}
+};
+
+struct w_split_cost_2 {
+	size_t j, i;
+	short * S;
+	const std::vector<energy_t>& WM_;
+	paramT * params;
+	energy_t operator () ( energy_t prev_best, auto const& key_val ) const {
+		size_t k = key_val.first ;
+
+		energy_t v_kj = key_val.second + E_MLstem(pair[S[k]][S[j]],-1,-1,params);
+		return std::min( prev_best, 
+					energy_t(v_kj + WM_[k - 1]) );
+	}
+};
+
+
+// typedef unsigned short int cand_pos_t;
+// typedef std::pair<cand_pos_t,energy_t> cand_entry_t;
+// typedef std::vector< cand_entry_t > cand_list_t;
+
+std::pair< energy_t, energy_t > split_cases_1( auto const& CL, auto const& WM, auto const& S, auto const& params, int i, int j ) {
+	energy_t wm_split = INF;
+	energy_t wm2_split = INF;
+	// w_split_cost{j,i, S, WM,params};
+
+	wm_split = std::accumulate( 
+						CL.begin()
+						, CL.end()
+						, wm_split
+						, w_split_cost{j,i, S, WM,params} );
+	wm2_split = std::accumulate( 
+						CL.begin()
+						, CL.end()
+						, wm_split
+						, w_split_cost_2{j,i, S,WM,params} );
+
+
+	return std::make_pair( wm_split, wm2_split );
+
+}
+
+
 energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto const& S, auto const& S1, auto const& params, auto &ta, auto &W, auto &WM, auto &WM2, auto const& n, auto const& garbage_collect) {
 	for (size_t i=n; i>0; --i) {
 		energy_t WM2_ip1_jm1 = INF;
@@ -567,7 +628,7 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 
 			// ------------------------------
 			// WM and WM2: split cases
-			auto [wm_split, wm2_split] = split_cases( CL[j], WM,S, params,i,j);
+			auto [wm_split, wm2_split] = split_cases_1( CL[j], WM,S, params,i,j);
 
 			wm2_split = std::min( wm2_split, WM2[j-1] + params->MLbase );
 			wm_split = std::min( wm_split, WM[j-1] + params->MLbase );
@@ -714,59 +775,59 @@ size_t capacity_of_candidates(auto const& CL_) {
 }
 
 /**
- * @brief Simple driver for @see SparseMFEFold.
- *
- * Reads sequence from command line or stdin and calls folding and
- * trace-back methods of SparseMFEFold.
- */
+* @brief Simple driver for @see SparseMFEFold.
+*
+* Reads sequence from command line or stdin and calls folding and
+* trace-back methods of SparseMFEFold.
+*/
 int
 main(int argc,char **argv) {
 
-    args_info args_info;
+	args_info args_info;
 
-    // get options (call gengetopt command line parser)
-    if (cmdline_parser (argc, argv, &args_info) != 0) {
+	// get options (call gengetopt command line parser)
+	if (cmdline_parser (argc, argv, &args_info) != 0) {
 	exit(1);
-    }
+	}
 
-    std::string seq;
-    if (args_info.inputs_num>0) {
+	std::string seq;
+	if (args_info.inputs_num>0) {
 	seq=args_info.inputs[0];
-    } else {
+	} else {
 	std::getline(std::cin,seq);
-    }
+	}
 
 
-    bool verbose;
-    verbose = args_info.verbose_given;
+	bool verbose;
+	verbose = args_info.verbose_given;
 
-    bool mark_candidates;
-    mark_candidates = args_info.mark_candidates_given;
+	bool mark_candidates;
+	mark_candidates = args_info.mark_candidates_given;
 
-    SparseMFEFold sparsemfefold(seq,!args_info.noGC_given);
+	SparseMFEFold sparsemfefold(seq,!args_info.noGC_given);
 
 
-    cmdline_parser_free(&args_info);
+	cmdline_parser_free(&args_info);
 
-    std::cout << seq << std::endl;
-    //std::cout << "Len:\t"<<seq.length()<<std::endl<<std::endl;
+	std::cout << seq << std::endl;
+	//std::cout << "Len:\t"<<seq.length()<<std::endl<<std::endl;
 
-    energy_t mfe = fold(sparsemfefold.seq_,sparsemfefold.V_,sparsemfefold.cand_comp,sparsemfefold.CL_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.params_,sparsemfefold.ta_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_,sparsemfefold.n_,sparsemfefold.garbage_collect_);
+	energy_t mfe = fold(sparsemfefold.seq_,sparsemfefold.V_,sparsemfefold.cand_comp,sparsemfefold.CL_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.params_,sparsemfefold.ta_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_,sparsemfefold.n_,sparsemfefold.garbage_collect_);
 
-    std::string structure = trace_back(sparsemfefold.seq_,sparsemfefold.CL_,sparsemfefold.cand_comp,sparsemfefold.structure_,sparsemfefold.params_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.ta_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_,sparsemfefold.n_, mark_candidates);
+	std::string structure = trace_back(sparsemfefold.seq_,sparsemfefold.CL_,sparsemfefold.cand_comp,sparsemfefold.structure_,sparsemfefold.params_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.ta_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_,sparsemfefold.n_, mark_candidates);
 
-    std::ostringstream smfe;
-    smfe << std::setw(6) << std::setiosflags(std::ios::fixed) << std::setprecision(2) << mfe/100.0 ;
+	std::ostringstream smfe;
+	smfe << std::setw(6) << std::setiosflags(std::ios::fixed) << std::setprecision(2) << mfe/100.0 ;
 
-    std::cout << structure << " ("<<smfe.str()<<")"<<std::endl;
+	std::cout << structure << " ("<<smfe.str()<<")"<<std::endl;
 
-    size_t n=seq.length();
+	size_t n=seq.length();
 
-    float factor=1024;
+	float factor=1024;
 	
-    const std::string unit=" kB";
+	const std::string unit=" kB";
 
-    if (verbose) {
+	if (verbose) {
 		
 
 	std::cout <<std::endl;
@@ -781,7 +842,7 @@ main(int argc,char **argv) {
 	std::cout << "Can cap:\t"<<capacity_of_candidates(sparsemfefold.CL_)<<std::endl;
 	std::cout << "TAs num:\t"<<sizeT(sparsemfefold.ta_)<<std::endl;
 	std::cout << "TAs cap:\t"<<capacityT(sparsemfefold.ta_)<<std::endl;
-    }
+	}
 
-    return 0;
+	return 0;
 }

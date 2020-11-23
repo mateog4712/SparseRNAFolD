@@ -589,7 +589,7 @@ struct w_split_cost_2 {
 // typedef std::pair<cand_pos_t,energy_t> cand_entry_t;
 // typedef std::vector< cand_entry_t > cand_list_t;
 
-std::pair< energy_t, energy_t > split_cases_1( auto const& CL, auto const& WM, auto const& S, auto const& params, int i, int j ) {
+std::pair< energy_t, energy_t > split_cases_1( auto const& CL, auto const& WM, auto const& S, auto const& params, size_t i, size_t j ) {
 	energy_t wm_split = INF;
 	energy_t wm2_split = INF;
 	// w_split_cost{j,i, S, WM,params};

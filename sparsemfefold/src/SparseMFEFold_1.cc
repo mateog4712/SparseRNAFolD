@@ -341,29 +341,16 @@ auto const recompute_W(auto const &W, auto const& CL, size_t i, size_t max_j) {
 	energy_t v=INF;
 
 	// determine best split W -> W V
-	for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>=i;++it ) {
-		k = it->first;
-		const energy_t v_kj = it->second + E_ExtLoop(pair[S[k]][S[j]],-1,-1,params);
+	std::any_of(CL[j].begin(),CL[j].end(),[&]( auto const key_val ) {
+		auto const [key,val] = key_val;
+		k = key>=i ? key : k ;
+		
+		const energy_t v_kj = val + E_ExtLoop(pair[S[k]][S[j]],-1,-1,params);
 		const energy_t w = W[k-1] + v_kj;
 
-		if (W[j] == w) {
-		v = it->second;
-		break;
-		}
-	}
-	// std::for_each( std::cbegin( CL[j] ), std::cend( CL[j] ), [&]( auto const key_val ) {
-	// 	auto const [key,val] = key_val;
-	// 	k = key;
-	// 	if (k >=i) return;
-
-	// 	const energy_t v_kj = val + E_ExtLoop(pair[S[k]][S[j]],-1,-1,params);
-	// 	const energy_t w = W[k-1] + v_kj;
-
-	// 	if (W[j] == w) {
-	// 	v = val;
-	// 	return;
-	// 	}
-	// });
+		v = W[j] == w && key>=i ? val : v;
+		return key<i || W[j] == w;
+	});
 
 	assert(i<=k && k<j);
 	assert(v<INF);

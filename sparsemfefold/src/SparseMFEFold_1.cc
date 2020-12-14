@@ -351,6 +351,19 @@ auto const recompute_W(auto const &W, auto const& CL, size_t i, size_t max_j) {
 		break;
 		}
 	}
+	// std::for_each( std::cbegin( CL[j] ), std::cend( CL[j] ), [&]( auto const key_val ) {
+	// 	auto const [key,val] = key_val;
+	// 	k = key;
+	// 	if (k >=i) return;
+
+	// 	const energy_t v_kj = val + E_ExtLoop(pair[S[k]][S[j]],-1,-1,params);
+	// 	const energy_t w = W[k-1] + v_kj;
+
+	// 	if (W[j] == w) {
+	// 	v = val;
+	// 	return;
+	// 	}
+	// });
 
 	assert(i<=k && k<j);
 	assert(v<INF);
@@ -540,15 +553,16 @@ std::pair< energy_t, energy_t > split_cases( auto const& CL, auto const& WM, aut
 	energy_t wm_split = INF;
 	energy_t wm2_split = INF;
 
-	for ( auto const [key,val] : CL) {
+	std::for_each( std::cbegin( CL[j] ), std::cend( CL[j] ), [&]( auto const key_val ) {
+		auto const [key,val] = key_val;
 		size_t k = key;
 		energy_t v_kj = val + E_MLstem(pair[S[k]][S[j]],-1,-1,params);
-	
+
 		wm_split = std::min( wm_split, WM[k-1] + v_kj );
 		wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + v_kj );
 
 		wm2_split = std::min( wm2_split, WM[k-1] + v_kj );
-	}
+		});
 	return std::make_pair( wm_split, wm2_split );
 
 }
@@ -619,11 +633,11 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 			// ------------------------------
 			// W: split case
 			energy_t w_split = INF;
-			for ( auto const [key,val] : CL[j] ) {
-				size_t k=key;
-				energy_t v_kj = val + E_ExtLoop(pair[S[k]][S[j]],-1,-1,params);
-				w_split = std::min( w_split, W[k-1] + v_kj );
-			}
+			std::for_each( std::cbegin( CL[j] ), std::cend( CL[j] ), [&]( auto const key_val ) {
+                      auto const [key,val] = key_val;
+                      size_t k=key;
+                      energy_t v_kj = val + E_ExtLoop(pair[S[k]][S[j]],-1,-1,params);
+                      w_split = std::min( w_split, W[k-1] + v_kj ); });
 			w_split = std::min(w_split,W[j-1]);
 
 			// ------------------------------

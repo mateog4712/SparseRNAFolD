@@ -25,10 +25,13 @@ const char *args_info_help[] = {
   "  -V, --version          Print version and exit",
   "  -v, --verbose          Turn on verbose output",
   "  -m, --mark-candidates  Represent candidate base pairs by square brackets",
+  "  -r, --input-structure  Give a restricted structure as an input structure",
   "      --noGC             Turn off garbage collection and related overhead",
   "\nThe input sequence is read from standard input, unless it is\ngiven on the command line.\n",
   
 };
+
+std::string input_structure; 
 static void clear_given (struct args_info *args_info);
 static void clear_args (struct args_info *args_info);
 
@@ -44,7 +47,8 @@ static void init_args_info(struct args_info *args_info)
   args_info->version_help = args_info_help[1] ;
   args_info->verbose_help = args_info_help[2] ;
   args_info->mark_candidates_help = args_info_help[3] ;
-  args_info->noGC_help = args_info_help[4] ;
+  args_info->input_structure_help = args_info_help[4] ;
+  args_info->noGC_help = args_info_help[5] ;
   
 }
 void
@@ -89,6 +93,7 @@ static void clear_given (struct args_info *args_info)
   args_info->version_given = 0 ;
   args_info->verbose_given = 0 ;
   args_info->mark_candidates_given = 0 ;
+  args_info->input_structure_given = 0 ;
   args_info->noGC_given = 0 ;
 }
 
@@ -228,7 +233,7 @@ int update_arg(void *field, char **orig_field,unsigned int *field_given,
   };
 
 	FIX_UNUSED(stop_char);
-			FIX_UNUSED(val);
+	FIX_UNUSED(val);
 	
   /* store the original value */
   switch(arg_type) {
@@ -279,11 +284,12 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         { "version",	0, NULL, 'V' },
         { "verbose",	0, NULL, 'v' },
         { "mark-candidates",	0, NULL, 'm' },
+        { "input-structure",	required_argument, NULL, 'r' },
         { "noGC",	0, NULL, 0 },
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVvm", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVvmr:", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -317,6 +323,18 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
               "mark-candidates", 'm',
               additional_error))
             goto failure;
+        
+          break;
+        
+        case 'r':	/* Specify type of input file.  */
+        
+        
+          if (update_arg( 0 , 
+               0 , &(args_info->input_structure_given),
+              &(local_args_info.input_structure_given), optarg, 0, 0, ARG_NO,0, 0,"input-structure", 'r',additional_error))
+            goto failure;
+
+            input_structure = optarg;
         
           break;
 

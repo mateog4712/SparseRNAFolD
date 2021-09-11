@@ -129,6 +129,7 @@ public:
 	paramT *params_;
 
 	std::string structure_;
+	std::string restricted_;
 	
 
 	bool garbage_collect_;
@@ -166,7 +167,7 @@ public:
 	
 
 
-	SparseMFEFold(const std::string &seq, bool garbage_collect)
+	SparseMFEFold(const std::string &seq, bool garbage_collect, std::string restricted)
 	: seq_(seq),
 	n_(seq.length()),
 	params_(scale_parameters()),
@@ -189,6 +190,8 @@ public:
 	CL_.resize(n_+1);
 
 	resize(ta_,n_+1);
+
+	restricted_ = restricted;
 	}
 
 	
@@ -798,6 +801,189 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 	return W[n];
 }
 
+energy_t fold_restricted(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto const& S, auto const& S1, auto const& params, auto &ta, auto &W, auto &WM, auto &WM2, auto const& restricted, auto const& n, auto const& garbage_collect) {
+	
+    std::vector<int> st;
+	int p_table[restricted.size()] = {0};
+
+	for (int i=0; i < restricted.length(); i++)
+		{
+		if (restricted[i] == '.')
+			p_table[i] = -1;
+		else if (restricted[i] == ' ' || restricted[i] == '_')
+			p_table[i] = -2;
+		else if (restricted[i] == '(' || restricted[i] == '[')
+			st.push_back(i);
+		else if (restricted[i] == ')' || restricted[i] == ']')
+			{
+			int j = st[st.size()-1];
+			st.pop_back();
+			p_table[i] = j;
+			p_table[j] = i;
+			}
+		}
+	if (st.size() != 0)
+	{
+		fprintf (stderr, "The given structure is not valid: %d more left parentheses than right parentheses: %s\n", st.size(), restricted);
+		exit (1);
+	}
+	
+	for (size_t i=n; i>0; --i) {
+		energy_t WM2_ip1_jm1 = INF;
+		for ( size_t j=i+TURN+1; j<=n; j++ ) {
+
+			if(p_table[i-1] >= 0 && !(p_table[i-1] == j-1 && p_table[j-1] ==i-1))
+			{std:: cout << i << "\t" << j << std::endl;
+			continue;} //continue;
+			// std::cout << i << "\t" << j << std::endl;
+			// ------------------------------
+			// W: split case
+			energy_t w_split = INF;
+			// unrolled::for_each( std::cbegin( CL[j] ), std::cend( CL[j] ), [&]( auto const key_val ) {
+            //           auto const [key,val] = key_val;
+            //           size_t k=key;
+            //           energy_t v_kj = val + E_ExtLoop(pair[S[k]][S[j]],-1,-1,params);
+            //           w_split = std::min( w_split, W[k-1] + v_kj ); },1);
+			for ( auto const [key,val] : CL[j] ) {
+				size_t k=key;
+				energy_t v_kj = val + E_ExtLoop(pair[S[k]][S[j]],-1,-1,params);
+				w_split = std::min( w_split, W[k-1] + v_kj );
+			}
+			w_split = std::min(w_split,W[j-1]);
+
+			// ------------------------------
+			// WM and WM2: split cases
+			auto [wm_split, wm2_split] = split_cases_1( CL[j], WM,S, params,i,j);
+
+			wm2_split = std::min( wm2_split, WM2[j-1] + params->MLbase );
+			wm_split = std::min( wm_split, WM[j-1] + params->MLbase );
+
+			energy_t w  = w_split; // entry of W w/o contribution of V
+			energy_t wm = wm_split; // entry of WM w/o contribution of V
+
+
+			size_t i_mod=i%(MAXLOOP+1);
+
+			const int ptype_closing = pair[S[i]][S[j]];
+
+			// ----------------------------------------
+			// cases with base pair (i,j)
+			if(ptype_closing>0 || (p_table[i-1] == j-1 && p_table[j-1] ==i-1)) { // if i,j form a canonical base pair 
+
+
+				energy_t v_h = HairpinE(seq,S,S1,params,i,j);
+
+				// info of best interior loop decomposition (if better than hairpin)
+				size_t best_l=0;
+				size_t best_k=0;
+				energy_t best_e;
+
+				energy_t v_iloop=INF;
+
+				// constraints for interior loops
+				// i<k; l<j
+				// k-i+j-l-2<=MAXLOOP  ==> k <= MAXLOOP+i+1
+				//            ==> l >= k+j-i-MAXLOOP-2
+				// l-k>=TURN+1         ==> k <= j-TURN-2
+				//            ==> l >= k+TURN+1
+				// j-i>=TURN+3
+				//
+				size_t max_k = std::min(j-TURN-2,i+MAXLOOP+1);
+				#pragma omp parallel for num_threads(6);
+				for ( size_t k=i+1; k<=max_k; k++) {
+					size_t k_mod=k%(MAXLOOP+1);
+
+					size_t min_l=std::max(k+TURN+1 + MAXLOOP+2, k+j-i) - MAXLOOP-2;
+
+					for (size_t l=min_l; l<j; l++) {
+
+						assert(k-i+j-l-2<=MAXLOOP);
+
+						const energy_t v_iloop_kl = V(k_mod,l) + ILoopE(S,S1,params,ptype_closing,i,j,k,l);
+
+						if ( v_iloop_kl < v_iloop ) {
+							v_iloop = v_iloop_kl;
+							best_l=l;
+							best_k=k;
+							best_e=V(k_mod,l);
+						}
+					}
+				}
+
+				const energy_t v_split = WM2_ip1_jm1 + E_MLstem(rtype[ptype_closing],-1,-1,params) + params->MLclosing;
+				// this value, conceptually
+				// WM2(i+1,j-1), is set in the
+				// previous j-iteration before this
+				// value in array WM2_[] is overwritten
+
+				const energy_t v = std::min(v_h,std::min(v_iloop,v_split));
+
+				const energy_t w_v  = v + E_ExtLoop(ptype_closing,-1,-1,params);
+				const energy_t wm_v = v + E_MLstem(ptype_closing,-1,-1,params);
+
+				// update w and wm by v
+				w  = std::min(w_v, w_split);
+				wm = std::min(wm_v, wm_split);
+
+				// register required trace arrows from (i,j)
+				if ( v_iloop < std::min(v_h,v_split) ) {
+					if ( is_candidate(CL,cand_comp,best_k,best_l) ) {
+						//std::cout << "Avoid TA "<<best_k<<" "<<best_l<<std::endl;
+						avoid_trace_arrow(ta);
+					} else {
+						//std::cout<<"Reg TA "<<i<<","<<j<<":"<<best_k<<","<<best_l<<std::endl;
+						register_trace_arrow(ta,i,j,best_k,best_l,best_e);
+					}
+				}
+
+				// check whether (i,j) is a candidate; then register
+				if ( w_v < w_split || wm_v < wm_split ) {
+
+					//std::cout << "Reg Cand "<<i<<","<<j<<std::endl;
+
+					register_candidate(CL, i, j, v );
+
+					// always keep arrows starting from candidates
+					inc_source_ref_count(ta,i,j);
+				}
+
+				V(i_mod,j) = v;
+
+			} else {
+				V(i_mod,j) = INF;
+			} // end if (i,j form a canonical base pair)
+
+			W[j]       = w;
+			WM[j]      = wm;
+
+			WM2_ip1_jm1 = WM2[j]; // here, the array WM2_ still
+					// contains WM2(i+1,j-1); in
+					// the next j-iteration, we
+					// need this.
+			WM2[j]     = wm2_split;
+
+		} // end loop j
+
+		// Clean up trace arrows in i+MAXLOOP+1
+		if (garbage_collect && i+MAXLOOP+1 <= n) {
+			gc_row(ta,i + MAXLOOP + 1 );
+		}
+
+		// Reallocate candidate lists in i
+		for ( auto &x: CL ) {
+			if (x.capacity() > 1.5*x.size()) {
+				cand_list_t vec(x.size());
+				copy(x.begin(),x.end(),vec.begin());
+				vec.swap(x);
+			}
+		}
+
+		compactify(ta);
+	}
+
+	return W[n];
+}
+
 
 size_t num_of_candidates(auto const& CL_)  {
 	size_t c=0;
@@ -838,6 +1024,8 @@ main(int argc,char **argv) {
 	std::getline(std::cin,seq);
 	}
 
+	std::string restricted;
+    args_info.input_structure_given ? restricted = input_structure : restricted = "";
 
 	bool verbose;
 	verbose = args_info.verbose_given;
@@ -845,15 +1033,18 @@ main(int argc,char **argv) {
 	bool mark_candidates;
 	mark_candidates = args_info.mark_candidates_given;
 
-	SparseMFEFold sparsemfefold(seq,!args_info.noGC_given);
+	SparseMFEFold sparsemfefold(seq,!args_info.noGC_given,restricted);
 
 
 	cmdline_parser_free(&args_info);
 
 	std::cout << seq << std::endl;
 	//std::cout << "Len:\t"<<seq.length()<<std::endl<<std::endl;
-
-	energy_t mfe = fold(sparsemfefold.seq_,sparsemfefold.V_,sparsemfefold.cand_comp,sparsemfefold.CL_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.params_,sparsemfefold.ta_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_,sparsemfefold.n_,sparsemfefold.garbage_collect_);
+	
+	// energy_t mfe = fold(sparsemfefold.seq_,sparsemfefold.V_,sparsemfefold.cand_comp,sparsemfefold.CL_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.params_,sparsemfefold.ta_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_,sparsemfefold.n_,sparsemfefold.garbage_collect_);
+	energy_t mfe;
+	if(!args_info.input_structure_given) mfe = fold_restricted(sparsemfefold.seq_,sparsemfefold.V_,sparsemfefold.cand_comp,sparsemfefold.CL_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.params_,sparsemfefold.ta_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_,sparsemfefold.restricted_,sparsemfefold.n_,sparsemfefold.garbage_collect_);
+	else mfe = fold(sparsemfefold.seq_,sparsemfefold.V_,sparsemfefold.cand_comp,sparsemfefold.CL_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.params_,sparsemfefold.ta_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_,sparsemfefold.n_,sparsemfefold.garbage_collect_);
 
 	std::string structure = trace_back(sparsemfefold.seq_,sparsemfefold.CL_,sparsemfefold.cand_comp,sparsemfefold.structure_,sparsemfefold.params_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.ta_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_,sparsemfefold.n_, mark_candidates);
 

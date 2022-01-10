@@ -9,3 +9,4 @@ set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \ -fconcepts")
 
 add_subdirectory(src)
 add_subdirectory(ViennaRNA)
+add_subdirectory(test)

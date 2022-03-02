@@ -6,6 +6,9 @@
 // The restricted structure
 extern std::string input_structure;
 
+// The number of dangles
+extern int dangles;
+
 /** @brief Where the command line options are stored */
 struct args_info
 {
@@ -14,6 +17,7 @@ struct args_info
   const char *verbose_help; /**< @brief Turn on verbose output help description.  */
   const char *mark_candidates_help; /**< @brief Represent candidate base pairs by square brackets help description.  */
   const char *input_structure_help; /**< @brief Give restricted structure as input help description.  */
+  const char *dangles_help; /**< @brief Give the number of dangles being used (1 or 2) */
   const char *noGC_help; /**< @brief Turn off garbage collection and related overhead help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
@@ -21,6 +25,7 @@ struct args_info
   unsigned int verbose_given ;	/**< @brief Whether verbose was given.  */
   unsigned int mark_candidates_given ;	/**< @brief Whether mark-candidates was given.  */
   unsigned int input_structure_given ;	/**< @brief Whether restricted structure was given.  */
+  unsigned int dangles_given ;	/**< @brief Whether restricted structure was given.  */
   unsigned int noGC_given ;	/**< @brief Whether noGC was given.  */
 
   char **inputs ; /**< @brief unnamed options (options without names) */

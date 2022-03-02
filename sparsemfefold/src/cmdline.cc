@@ -26,6 +26,7 @@ const char *args_info_help[] = {
   "  -v, --verbose          Turn on verbose output",
   "  -m, --mark-candidates  Represent candidate base pairs by square brackets",
   "  -r, --input-structure  Give a restricted structure as an input structure",
+  "  -d, --dangles=INT      How to treat \"dangling end\" energies for bases adjacent to helices in free ends and multi-loops (default=`2')",
   "      --noGC             Turn off garbage collection and related overhead",
   "\nThe input sequence is read from standard input, unless it is\ngiven on the command line.\n",
   
@@ -48,7 +49,8 @@ static void init_args_info(struct args_info *args_info)
   args_info->verbose_help = args_info_help[2] ;
   args_info->mark_candidates_help = args_info_help[3] ;
   args_info->input_structure_help = args_info_help[4] ;
-  args_info->noGC_help = args_info_help[5] ;
+  args_info->dangles_help = args_info_help[5];
+  args_info->noGC_help = args_info_help[6] ;
   
 }
 void
@@ -94,6 +96,7 @@ static void clear_given (struct args_info *args_info)
   args_info->verbose_given = 0 ;
   args_info->mark_candidates_given = 0 ;
   args_info->input_structure_given = 0 ;
+  args_info->dangles_given = 0 ;
   args_info->noGC_given = 0 ;
 }
 
@@ -285,11 +288,12 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         { "verbose",	0, NULL, 'v' },
         { "mark-candidates",	0, NULL, 'm' },
         { "input-structure",	required_argument, NULL, 'r' },
+        { "dangles", required_argument, NULL, 'd'},
         { "noGC",	0, NULL, 0 },
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVvmr:", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVvmr:d:", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -326,7 +330,7 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         
           break;
         
-        case 'r':	/* Specify type of input file.  */
+        case 'r':	/* Specify restricted structure.  */
         
         
           if (update_arg( 0 , 
@@ -335,6 +339,18 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
             goto failure;
 
             input_structure = optarg;
+        
+          break;
+
+        case 'd':	/* Specify dangle type for multiloop.  */
+        
+        
+          if (update_arg( 0 , 
+               0 , &(args_info->dangles_given),
+              &(local_args_info.dangles_given), optarg, 0, 0, ARG_NO,0, 0,"dangles", 'd',additional_error))
+            goto failure;
+
+            dangles = strtol(optarg,NULL,10);
         
           break;
 

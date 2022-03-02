@@ -15,7 +15,7 @@ vector<string> ostructs;
 vector<double> energies;
 
 
-ifstream in("example.txt");
+ifstream in("/home/mgray7/sparsemfe/sparsemfefold/example.txt");
 
 string str;
 int i = 0;
@@ -48,7 +48,7 @@ double score = 0;
 int size = seqs.size();
 for(int i =0;i<size;++i){
     string commands = command + seqs[i] + " -r=\"" + istructs[i] + "\" > out.txt";
-
+    cout << commands << endl;
     system(commands.c_str());
     ifstream in1("out.txt");
     getline(in1,str);

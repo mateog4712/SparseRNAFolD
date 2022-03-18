@@ -47,22 +47,23 @@ string command = "./build/src/SparseMFEFold ";
 double score = 0;
 int size = seqs.size();
 for(int i =0;i<size;++i){
-    string commands = command + seqs[i] + " -r=\"" + istructs[i] + "\" > out.txt";
-    cout << commands << endl;
+    string commands = command + "-r \"" + istructs[i] + "\" "+ seqs[i] +  " > out.txt";
+    cout << i << endl;
     system(commands.c_str());
     ifstream in1("out.txt");
     getline(in1,str);
     getline(in1,str);
     in1.close();
     string structure = str.substr(0,seqs[i].length());
-    double energy = stod(str.substr(seqs[i].length()+3,str.length()-1));
-    if(structure == ostructs[i] && energy == energies[i]) score+=1;
+    double energy = stod(str.substr(seqs[i].length()+2,str.length()-1));
+    if(energy == energies[i]) score+=1;
     else{
         cout << names[i] << endl;
-        if(structure != ostructs[i]) cout << structure << " != " << ostructs[i] << endl;
+        if(structure != ostructs[i]) cout << structure << endl << ostructs[i] << endl;
         if(energy != energies[i]) cout << energy << " != " << energies[i] << endl;
     }
 }
+
 
 
 cout << score << " out of " << size << endl;

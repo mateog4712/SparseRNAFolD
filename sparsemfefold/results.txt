@@ -1,0 +1,21 @@
+>SPR_00001 RNA SSTRAND database. External source: Sprinzl tRNA database, ID: RA0380.
+GGGCUCGUAGAUCAGCGGUAGAUCNCUUCCUUCGCAAGGAAGAGGCCNUGGGNNNAAUCCCAGCGAGUCCACCA
+....((..............)......................)(.............).(...).(....)..
+.........................(((((((...)))))))................................
+....((..............)....(((((((...))))))).)(.............).(...).(....)..
+-6.9	14.8	6
+
+>SPR_00002 RNA SSTRAND database. External source: Sprinzl tRNA database, ID: RA0500.
+GGGCUCGUAGAUCAGUGGCAGAUCNCUUCCUUCGCAAGGAAGAGGCNNGGGGNNNAAUCCCCGCGAGUCCACCA
+.....(...)((.....)............(.............(..............)..)....)......
+..........................................................................
+.....(...)(((...))........(((.(((........))((..............)).).))))......
+0	20.6	6
+
+>SPR_00003 RNA SSTRAND database. External source: Sprinzl tRNA database, ID: RA0501.
+GGGCUCGUAGAUCAGGGGUAGAUCACUCCCUUGGCAUGGGAGAGGCNNCGGGNNNAAUCCCGGCGAGUCCACCA
+.......((.....................)(.......)....((....).................).)...
+..............(((((.....))))).............................................
+......((((....(((((.....)))))))(.......)...(((....).................))))..
+-4.7	9.6	6
+

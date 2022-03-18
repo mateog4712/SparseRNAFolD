@@ -117,6 +117,11 @@ void trace_WM(auto const& seq, auto const& CL, auto const& cand_comp, auto &stru
 void trace_WM2(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S,auto const& S1, auto &ta, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates,size_t i, size_t j,int* p_table,int dangles);
 
 
+// struct p_struct{
+// 	int* p_table;
+// 	int* last_j;
+// }
+
 /**
 * Space efficient sparsification of Zuker-type RNA folding with
 * trace-back. Provides methods for the evaluation of dynamic
@@ -262,7 +267,7 @@ energy_t E_MbLoop(auto const& dmli1, auto const& dmli2, auto const& S, auto cons
 	/* double dangles */
 	switch(dangles){
 		case 2:
-			if ((p_table[i+1] <0 && p_table[j-1] <0) || (p_table[i] == j and p_table[j] == i)) {
+			if ((p_table[i+1] <-1 && p_table[j-1] <-1) || (p_table[i] == j and p_table[j] == i)) {
 			e = dmli1[j - 1];
 
 			if (e != INF) {
@@ -280,7 +285,7 @@ energy_t E_MbLoop(auto const& dmli1, auto const& dmli2, auto const& S, auto cons
 		case 1:
 			/* new closing pair (i,j) with mb part [i+1,j-1] */
 			tt  = pair[S[j]][S[i]];
-			if ((p_table[i] <0 && p_table[j] <0) || (p_table[i] == j and p_table[j] == i)) {
+			if ((p_table[i] <-1 && p_table[j] <-1) || (p_table[i] == j and p_table[j] == i)) {
         		e = dmli1[j - 1];
 
         		if (e != INF) {
@@ -291,7 +296,7 @@ energy_t E_MbLoop(auto const& dmli1, auto const& dmli2, auto const& S, auto cons
       		}
      		tt  = pair[S[j]][S[i]];
       		/* new closing pair (i,j) with mb part [i+2,j-1] */
-      		if (((p_table[i] <0 && p_table[j] <0) || (p_table[i] == j and p_table[j] == i)) && p_table[i+1] < 0) {
+      		if (((p_table[i] <-1 && p_table[j] <-1) || (p_table[i] == j and p_table[j] == i)) && p_table[i+1] < 0) {
         		en = dmli2[j - 1];
 
         		if (en != INF) {
@@ -305,7 +310,7 @@ energy_t E_MbLoop(auto const& dmli1, auto const& dmli2, auto const& S, auto cons
       		e   = MIN2(e, en);
 
 			/* new closing pair (i,j) with mb part [i+1, j-2] */
-			if (((p_table[i] <0 && p_table[j] <0) || (p_table[i] == j and p_table[j] == i)) && p_table[j-1] < 0) {
+			if (((p_table[i] <-1 && p_table[j] <-1) || (p_table[i] == j and p_table[j] == i)) && p_table[j-1] < 0) {
 				en = dmli1[j - 2];
 
 				if (en != INF) {
@@ -317,7 +322,7 @@ energy_t E_MbLoop(auto const& dmli1, auto const& dmli2, auto const& S, auto cons
 			e   = MIN2(e, en);
 
 			/* new closing pair (i,j) with mb part [i+2.j-2] */
-			if (((p_table[i] <0 && p_table[j] <0) || (p_table[i] == j and p_table[j] == i)) && p_table[i+1] < 0 && p_table[j-2] <0) {
+			if (((p_table[i] <-1 && p_table[j] <-1) || (p_table[i] == j and p_table[j] == i)) && p_table[i+1] < -1 && p_table[j-2] <-1) {
 				e = dmli2[j - 2];
 
 				if (e != INF) {
@@ -331,7 +336,7 @@ energy_t E_MbLoop(auto const& dmli1, auto const& dmli2, auto const& S, auto cons
 			e   = MIN2(e, en);
       		break;
 		case 3:
-			if ((p_table[i] <0 && p_table[j] <0) || (p_table[i] == j and p_table[j] == i)) {
+			if ((p_table[i] <-1 && p_table[j] <-1) || (p_table[i] == j and p_table[j] == i)) {
 				e = dmli1[j - 1];
 
 				if (e != INF) {
@@ -387,7 +392,7 @@ energy_t E_MLStem(auto const& vkj, auto const& WM, auto const& CL,auto const& S,
 			*
 			* i,j-1 should be WM2[j-1]
 			*/
-			if (p_table[j-1]<0) {
+			if (p_table[j-1]<-1) {
 				int en = WM[j-1];
 				if (en != INF) {
 					en += params->MLbase;
@@ -401,7 +406,7 @@ energy_t E_MLStem(auto const& vkj, auto const& WM, auto const& CL,auto const& S,
 			*  dangle models
 			*  i+1 should be equal to WM from iteration before
 			*/
-			if (p_table[i+1]<0) {
+			if (p_table[i+1]<-1) {
 				int en = WM[j];
 				if (en != INF) {
 					en += params->MLbase;
@@ -436,10 +441,11 @@ auto const recompute_W(auto const &W, auto const& CL, size_t i, size_t max_j, in
 		// note: the loop covers the case W(i,j)=V(i,j),
 		// since this is in the candidate list (TBS)
 		for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>=i ; ++it ) {
+			// pairedkj = (p_table[it->first-1] == j && p_table[j] == it->first-1);
 			w = std::min( w, temp[it->first-1] + it->second );
 		}
 		// case "j unpaired" is not in the CL (anymore)
-		w = std::min(w,temp[j-1]);
+		if(p_table[j-1]<-1) w = std::min(w,temp[j-1]);
 
 		temp[j] = w;
 	}
@@ -466,18 +472,19 @@ auto const recompute_W(auto const &W, auto const& CL, size_t i, size_t max_j, in
 	
 	for ( size_t j=i+TURN+1; j<=max_j; j++ ) {
 		energy_t wm = INF;
-
+		bool paired;
 		int mm3 = S[j-1];
 		#pragma omp parallel for num_threads(6);
 		for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>=i ; ++it ) {
 			size_t k = it->first;
+			paired = (p_table[k] == j && p_table[j] == k);
 			int mm5 = S[k+1];
 			const energy_t v_kj = E_MLStem(it->second,WM,CL,S,params,k,j,n,dangles,p_table);
 			wm = std::min( wm, static_cast<energy_t>(params->MLbase*(k-i)) + v_kj );
 			wm = std::min( wm, temp[k-1]  + v_kj );
+			if(paired) break;
 		}
-		wm = std::min(wm, temp[j-1] + params->MLbase);
-
+		if(p_table[j]<-1) wm = std::min(wm, temp[j-1] + params->MLbase);
 		temp[j] = wm;
 	}
 	return temp;
@@ -503,16 +510,18 @@ auto const recompute_W(auto const &W, auto const& CL, size_t i, size_t max_j, in
 	#pragma omp parallel for num_threads(6);
 	for ( size_t j=i+2*TURN+3; j<=max_j; j++ ) {
 		energy_t wm2 = INF;
-
+		bool paired;
 		int mm3 = S[j-1];
 		for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>i+TURN+1 ; ++it ) {
+			
 			size_t k = it->first;
+			paired = (p_table[k] == j && p_table[j] == k);
 			int mm5 = S[k+1];
 			energy_t v_kl = E_MLStem(it->second,WM,CL,S,params,k,j,n,dangles,p_table);
 			wm2 = std::min( wm2, WM[k-1]  + v_kl );
+			if(paired) break;
 		}
-		wm2 = std::min(wm2, temp[j-1] + params->MLbase);
-
+		if(p_table[j]<-1) wm2 = std::min(wm2, temp[j-1] + params->MLbase);
 		temp[j] = wm2;
 	}
 	return temp;
@@ -553,19 +562,19 @@ auto const recompute_W(auto const &W, auto const& CL, size_t i, size_t max_j, in
 	size_t k=j+1;
 	energy_t v=INF;
 	int sj1 = (j<n) ? S[j+1] : -1;
+	energy_t w;
 	for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>=i;++it ) {
 		k = it->first;
 		
 		int sk1 = (k>1) ? S[k-1] : -1;
 		const energy_t v_kj = it->second + vrna_E_ext_stem(pair[S[k]][S[j]],sk1,sj1,params);
-		const energy_t w = W[k-1] + v_kj;
+		w = W[k-1] + v_kj;
 		
 		if (W[j] == w) {
 		v = it->second;
 		break;
 		}
 	}
-
 
 	assert(i<=k && k<j);
 	assert(v<INF);
@@ -599,7 +608,6 @@ auto const recompute_W(auto const &W, auto const& CL, size_t i, size_t max_j, in
 		structure[i]='(';
 		structure[j]=')';
 	}
-
 	const int ptype_closing = pair[S[i]][S[j]];
 
 	if (exists_trace_arrow_from(ta,i,j)) {
@@ -690,6 +698,7 @@ auto const recompute_W(auto const &W, auto const& CL, size_t i, size_t max_j, in
 
 	const energy_t e = WM2[j];
 
+
 	// case j unpaired
 	if ( e == WM2[j-1] + params->MLbase ) {
 		// same i, no recomputation
@@ -762,14 +771,15 @@ std::pair< energy_t, energy_t > split_cases( auto const& CL, auto const& WM, aut
 	for ( auto const [key,val] : CL) {
 		size_t k = key;
 		int mm5 = S[k+1];
-		
+		bool paired = (p_table[k] == j && p_table[j] == k);
 		energy_t v_kj = E_MLStem(val,WM,CL,S,params,k,j,n,dangles,p_table);
 	
 		wm_split = std::min( wm_split, WM[k-1] + v_kj );
 		wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + v_kj );
 
 		wm2_split = std::min( wm2_split, WM[k-1] + v_kj );
-	
+
+		if(paired) return std::make_pair( wm_split, wm2_split );
 	}
 	return std::make_pair( wm_split, wm2_split );
 
@@ -834,33 +844,57 @@ std::pair< energy_t, energy_t > split_cases_1( auto const& CL, auto const& WM, a
 
 }
 
-energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto const& S, auto const& S1, auto const& params, auto &ta, auto &W, auto &WM, auto &WM2, auto &dmli1, auto &dmli2, auto const& n, auto const& dangles, auto const& garbage_collect, int *p_table) {
+bool evaluate_restriction(int i, int j, int *last_j_array, int *in_pair_array){
+	bool evaluate = 1;
+	if(in_pair_array[i]>in_pair_array[j]) evaluate = 0;
+
+	if(in_pair_array[i]<in_pair_array[j]) evaluate = 0;
+
+	if(in_pair_array[i]==in_pair_array[j]){
+		if(j>last_j_array[i]) evaluate = 0;
+	}
+	return evaluate;
+}
+
+energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto const& S, auto const& S1, auto const& params, auto &ta, auto &W, auto &WM, auto &WM2, auto &dmli1, auto &dmli2, auto const& n, auto const& dangles, auto const& garbage_collect, int *p_table, int *last_j_array, int *in_pair_array) {
 	for (size_t i=n; i>0; --i) {
-		energy_t WM2_ip1_jm1 = INF;
 		int si1 = (i>1) ? S[i-1] : -1;
 		for ( size_t j=i+TURN+1; j<=n; j++ ) {
 
 			int sj1 = (j<n) ? S[j+1] : -1;
 			int mm5 = S[i+1];
 			int mm3 = S[j-1];
+			bool evaluate = evaluate_restriction(i,j,last_j_array,in_pair_array);
 			// ------------------------------
 			// W: split case
+			bool unpairedkj;
+			bool pairedkj;
 			energy_t w_split = INF;
 			for ( auto const [key,val] : CL[j] ) {
 				size_t k=key;
 				int sk1 = (k>1) ? S[k-1] : -1;
-				energy_t v_kj = (((p_table[k]<0 && p_table[j]<0) || (p_table[k] == j && p_table[j] == k))) ? val + vrna_E_ext_stem(pair[S[k]][S[j]],sk1,sj1,params) : INF;
-				w_split = std::min( w_split, W[k-1] + v_kj );
+				unpairedkj = (p_table[k]<-1 && p_table[j]<-1);
+				pairedkj = (p_table[k] == j && p_table[j] == k);
+				energy_t v_kj = (unpairedkj || pairedkj) ? val + vrna_E_ext_stem(pair[S[k]][S[j]],sk1,sj1,params) : INF;
+				
+				if(pairedkj){
+					w_split = W[k-1] + v_kj; 
+					break;
+				}else{
+					w_split = std::min( w_split, W[k-1] + v_kj );
+				}
 			}
-			w_split = std::min(w_split,W[j-1]);
+			if(p_table[j]<-1) w_split = std::min(w_split,W[j-1]);
+			// w_split = std::min(w_split,W[j-1]);
 
 			// ------------------------------
 			// WM and WM2: split cases
 			auto [wm_split, wm2_split] = split_cases( CL[j], WM,S, params,i,j,n,p_table);
 
-			wm2_split = std::min( wm2_split, WM2[j-1] + params->MLbase );
-			wm_split = std::min( wm_split, WM[j-1] + params->MLbase );
-
+			if(p_table[j]<-1) wm2_split = std::min( wm2_split, WM2[j-1] + params->MLbase );
+			if(p_table[j]<-1) wm_split = std::min( wm_split, WM[j-1] + params->MLbase );
+			// wm2_split = std::min( wm2_split, WM2[j-1] + params->MLbase );
+			// wm_split = std::min( wm_split, WM[j-1] + params->MLbase );
 			energy_t w  = w_split; // entry of W w/o contribution of V
 			energy_t wm = wm_split; // entry of WM w/o contribution of V
 
@@ -870,15 +904,15 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 			size_t i_mod=i%(MAXLOOP+1);
 
 			const int ptype_closing = pair[S[i]][S[j]];
+			const bool restricted = p_table[i] == -1 || p_table[i] == -1;
 			// ----------------------------------------
 			// cases with base pair (i,j)
-			if(ptype_closing>0) { // if i,j form a canonical base pair
+			if(ptype_closing>0 && !restricted && evaluate) { // if i,j form a canonical base pair
 
 				bool canH = true;
 				if((p_table[i]>-1 && p_table[i] != j) || (p_table[j]>-1 && p_table[j] != i)) canH = false;
 				for(int k=i+1;k<j;k++) if(p_table[k]>-1){canH = false;} // make more efficient later
 				energy_t v_h = canH ? HairpinE(seq,S,S1,params,i,j) : INF;
-
 				// info of best interior loop decomposition (if better than hairpin)
 				size_t best_l=0;
 				size_t best_k=0;
@@ -912,7 +946,6 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 						assert(k-i+j-l-2<=MAXLOOP);
 
 						const energy_t v_iloop_kl = canI ? V(k_mod,l) + ILoopE(S,S1,params,ptype_closing,i,j,k,l) : INF;
-
 						if ( v_iloop_kl < v_iloop ) {
 							v_iloop = v_iloop_kl;
 							best_l=l;
@@ -921,18 +954,28 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 						}
 					}
 				}
-
+				bool unpaired = (p_table[i]<-1 && p_table[j]<-1);
+				bool paired = (p_table[i] == j && p_table[j] == i);
 				const energy_t v_split = E_MbLoop(dmli1,dmli2,S,params,i,j,dangles,p_table);
 
 				const energy_t v = std::min(v_h,std::min(v_iloop,v_split));
 
-				const energy_t w_v  = (((p_table[i]<0 && p_table[j]<0) || (p_table[i] == j && p_table[j] == i))) ? v + vrna_E_ext_stem(ptype_closing,si1,sj1,params): INF;
-				const energy_t wm_v = (((p_table[i]<0 && p_table[j]<0) || (p_table[i] == j && p_table[j] == i))) ? v + E_MLstem(ptype_closing,-1,-1,params): INF;
+				const energy_t w_v  = (unpaired || paired) ? v + vrna_E_ext_stem(ptype_closing,si1,sj1,params): INF;
+				const energy_t wm_v = (unpaired || paired) ? E_MLStem(v,WM,CL,S,params,i,j,n,dangles,p_table): INF;
 				
 				// update w and wm by v
-				w  = std::min(w_v, w_split);
-				wm = std::min(wm_v, wm_split);
-				 
+				if(paired){
+					w = w_v;
+					wm = wm_v;
+				} else if(pairedkj){
+					w = w_split;
+					wm = wm_split;
+				} else{
+					w  = std::min(w_v, w_split);
+					wm = std::min(wm_v, wm_split);
+				}
+				
+				
 				
 
 				// register required trace arrows from (i,j)
@@ -942,13 +985,14 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 						avoid_trace_arrow(ta);
 					} else {
 						//std::cout<<"Reg TA "<<i<<","<<j<<":"<<best_k<<","<<best_l<<std::endl;
+						
 						register_trace_arrow(ta,i,j,best_k,best_l,best_e);
 					}
 				}
-
+				
 				// check whether (i,j) is a candidate; then register
-				if ( w_v < w_split || wm_v < wm_split ) {
-
+				if ( w_v < w_split || wm_v < wm_split || paired) {
+			
 					register_candidate(CL, i, j, v );
 
 					// always keep arrows starting from candidates
@@ -984,8 +1028,6 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 	
 	return W[n];
 }
-
-void detect_original_pairs(auto const &structure, int *p_table)
 // PRE:  structure contains the desired structure
 // POST: p_table will contain the index of each base pair
 //               or -1 if it does not pair
@@ -994,7 +1036,7 @@ void detect_original_pairs(auto const &structure, int *p_table)
 //      The assumption is that the <> pairs are always nested within parentheses.
 //      That is, a structure like this (<)> is not possible.
 //  - x, which denotes that I should ignore that part. p_table would be -3 in that case/
-{
+void detect_original_pairs(auto const &structure, int *p_table){
         int i, j, struct_len;
         std::vector<int>  st;
 
@@ -1002,12 +1044,10 @@ void detect_original_pairs(auto const &structure, int *p_table)
 
         for (i=1; i < struct_len; i++)
           {
-            if (structure[i-1] == '.')
+            if ((structure[i-1] == 'x') || (structure[i-1] == 'X'))
               p_table[i] = -1;
-            else if (structure[i-1] == ' ' || structure[i-1] == '_')
+			else if (structure[i-1] == '.')
               p_table[i] = -2;
-            else if ((structure[i-1] == 'x') || (structure[i-1] == 'X'))
-              p_table[i] = -3;
             else if (structure[i-1] == '(' || structure[i-1] == '[' || structure[i-1] == '{' || structure[i-1] == '<')
               st.push_back(i);
             else if (structure[i-1] == ')' || structure[i-1] == ']' || structure[i-1] == '}' || structure[i-1] == '>')
@@ -1023,6 +1063,26 @@ void detect_original_pairs(auto const &structure, int *p_table)
             fprintf (stderr, "The given structure is not valid: more left parentheses than right parentheses: \n");
             exit (1);
         }
+}
+
+void detect_restriction(auto const &structure, int *last_j_array, int *in_pair_array){
+	std::vector<int>  st;
+	int length = structure.length()+1;
+	int last_j=length;
+	int count = 0;
+	st.push_back(length);
+	for(int i=length;i>=1;--i){
+		if(structure[i-1] == ')') {
+			count++;
+			st.push_back(i);
+		}
+		last_j_array[i] = st[st.size()-1];
+		in_pair_array[i] = count;
+		if(structure[i-1] == '('){
+			count--;
+			st.erase(st.end()-1);
+		}
+	}
 }
 
 size_t num_of_candidates(auto const& CL_)  {
@@ -1082,12 +1142,18 @@ main(int argc,char **argv) {
 
 	SparseMFEFold sparsemfefold(seq,!args_info.noGC_given,restricted, dangles);
 
+	// Make restricted table
 	int p_table[seq.length()+1];
 	detect_original_pairs(restricted,p_table);
 	
+	// Make replicate mx array in linear space
+	int last_j_array[seq.length()+1] = {0};
+	int in_pair_array[seq.length()+1] = {0};
+	detect_restriction(restricted,last_j_array,in_pair_array);
+
 	std::cout << seq << std::endl;
 	
-	energy_t mfe = fold(sparsemfefold.seq_,sparsemfefold.V_,sparsemfefold.cand_comp,sparsemfefold.CL_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.params_,sparsemfefold.ta_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_, sparsemfefold.dmli1_, sparsemfefold.dmli2_,sparsemfefold.n_, sparsemfefold.dangles_,sparsemfefold.garbage_collect_, p_table);	
+	energy_t mfe = fold(sparsemfefold.seq_,sparsemfefold.V_,sparsemfefold.cand_comp,sparsemfefold.CL_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.params_,sparsemfefold.ta_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_, sparsemfefold.dmli1_, sparsemfefold.dmli2_,sparsemfefold.n_, sparsemfefold.dangles_,sparsemfefold.garbage_collect_, p_table,last_j_array,in_pair_array);	
 
 	std::string structure = trace_back(sparsemfefold.seq_,sparsemfefold.CL_,sparsemfefold.cand_comp,sparsemfefold.structure_,sparsemfefold.params_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.ta_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_,sparsemfefold.n_,p_table,dangles, mark_candidates);
 	std::ostringstream smfe;
@@ -1100,6 +1166,7 @@ main(int argc,char **argv) {
 	// float factor=1024;
 	
 	// const std::string unit=" kB";
+	
 
 	if (verbose) {
 		

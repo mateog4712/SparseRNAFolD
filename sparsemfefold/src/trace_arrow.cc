@@ -48,7 +48,12 @@ void inc_source_ref_count(TraceArrows &t, size_t i, size_t j) {
 
 
 
-
+/**
+ * @brief Resizes the trace arrows list to size n
+ * 
+ * @param t Trace Arrows list
+ * @param n New size
+ */
 void resize(TraceArrows &t,size_t n) {
     t.trace_arrow_.resize(n);
 }

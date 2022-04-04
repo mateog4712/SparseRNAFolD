@@ -610,7 +610,7 @@ bool is_candidate(auto const& CL,auto const& cand_comp,size_t i, size_t j) {
  * 
  * @param seq Sequence
  * @param CL Candidate List
- * @param cand_comp 
+ * @param cand_comp Candidate Comparator
  * @param structure Final structure
  * @param params Parameters
  * @param S Sequence Encoding
@@ -669,7 +669,7 @@ void trace_W(auto const& seq, auto const& CL, auto const& cand_comp, auto &struc
 * 
 * @param seq Sequence
 * @param CL Candidate List
-* @param cand_comp 
+* @param cand_comp Candidate Comparator
 * @param structure Final Structure
 * @param params Parameters
 * @param S Sequence Encoding
@@ -748,7 +748,7 @@ void trace_V(auto const& seq, auto const& CL, auto const& cand_comp, auto &struc
 * 
 * @param seq Sequence
 * @param CL Candidate List
-* @param cand_comp 
+* @param cand_comp Candidate Comparator
 * @param structure Final Structure
 * @param params Parameters
 * @param S Sequence Encoding
@@ -797,7 +797,7 @@ void trace_WM(auto const& seq, auto const& CL, auto const& cand_comp, auto &stru
 * 
 * @param seq Sequence
 * @param CL Candidate List
-* @param cand_comp 
+* @param cand_comp Candidate Comparator
 * @param structure Final Structure
 * @param params Parameters
 * @param S Sequence Encoding
@@ -1111,14 +1111,18 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 	}
 	return W[n];
 }
-// PRE:  structure contains the desired structure
-// POST: p_table will contain the index of each base pair
-//               or -1 if it does not pair
-// Feb 28, 2008: structure can also have:
-//  - angles: < or >, which denote the ends of a pseudoknot. In that case, p_table would still be filled in the same way.
-//      The assumption is that the <> pairs are always nested within parentheses.
-//      That is, a structure like this (<)> is not possible.
-//  - x, which denotes that I should ignore that part. p_table would be -3 in that case/
+
+/**
+ * @brief Fills the restriction arrays
+ * p_table will contain the index of each base pair
+ * X or x tells the program the base cannot pair and . sets it as unpaired but can pair
+ * Pseudoknots (denoted by [ ], < >, or { } ) are filled the same way as ( )
+ * That is, a structure like this (<)> is not possible.
+ * @param structure Input structure
+ * @param p_table Restricted array
+ * @param last_j_array Restricted Array
+ * @param in_pair_array Restricted Array
+ */
 void detect_restricted_pairs(auto const &structure, int *p_table, int *last_j_array, int *in_pair_array){
 	int i, j, count = 0, length = structure.length(),last_j=length;
 	std::vector<int>  pairs;
@@ -1151,6 +1155,12 @@ void detect_restricted_pairs(auto const &structure, int *p_table, int *last_j_ar
 	}
 }
 
+/**
+ * @brief Sums the number of Candidates at each index over all indices
+ * 
+ * @param CL_ Candidate list
+ * @return total number of candidates
+ */
 size_t num_of_candidates(auto const& CL_)  {
 	size_t c=0;
 	for ( auto const &x: CL_ ) {
@@ -1158,7 +1168,12 @@ size_t num_of_candidates(auto const& CL_)  {
 	}
 	return c;
 }
-
+/**
+ * @brief Finds the size of allocated storage capacity across all indices
+ * 
+ * @param CL_ Candidate List
+ * @return the amount of allocated storage 
+ */
 size_t capacity_of_candidates(auto const& CL_) {
 	size_t c=0;
 	for ( auto const &x: CL_ ) {

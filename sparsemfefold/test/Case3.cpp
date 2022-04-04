@@ -102,7 +102,7 @@ int main(int argc,char **argv) {
         getline(in2,str);
         getline(in2,str);
         in2.close();
-        exit(0);
+        // exit(0);
         // exit(0);
         // cout << str.length() << " " << seqs[i].length()+2 << " " << str.length()-seqs[i].length()-1;
         string structure2 = str.substr(0,seqs[i].length());

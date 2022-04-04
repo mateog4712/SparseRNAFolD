@@ -67,9 +67,12 @@ int main(int argc,char **argv) {
     double score = 0;
     int size = seqs.size();
     // exit(0);
-    ofstream out3("results.txt");
+    string filename = "/home/mgray7/output2/results/" + family +".txt";
+    ofstream out3(filename);
     for(int i =0;i<size;++i){
+        cout << i << endl;
         string intermediary = make_structure(seqs[i]);
+        cout << intermediary << endl;
         
         string commands = command + " -r \"" + intermediary + "\" " + seqs[i] +  " > out.txt";
         system(commands.c_str());
@@ -78,10 +81,12 @@ int main(int argc,char **argv) {
         getline(in1,str);
         getline(in1,str);
         in1.close();
-
+        // exit(0);
         string structure = str.substr(0,seqs[i].length());
-        double energy = stod(str.substr(seqs[i].length()+2,str.length()-1));
-    
+        
+
+        double energy = stod(str.substr(seqs[i].length()+2,str.length()-seqs[i].length()-1));
+        // exit(0);
         ofstream out1("/home/mgray7/RNAfold/in.txt");
         out1 << names[i] << endl;
         out1 << seqs[i] << endl;
@@ -97,18 +102,25 @@ int main(int argc,char **argv) {
         getline(in2,str);
         getline(in2,str);
         in2.close();
-
+        exit(0);
+        // exit(0);
+        // cout << str.length() << " " << seqs[i].length()+2 << " " << str.length()-seqs[i].length()-1;
         string structure2 = str.substr(0,seqs[i].length());
-        double energy2 = stod(str.substr(seqs[i].length()+2,str.length()-1));
+        // exit(0);
+        
+        double energy2 = stod(str.substr(seqs[i].length()+2,str.length()-seqs[i].length()-1));
+        // exit(0);
         out3 << names[i] << endl;
         out3 << seqs[i] << endl;
         out3 << intermediary << endl;
         out3 << structure << endl;
         out3 << structure2 << endl;
-        for(int k=0;k<structure.length();++k){
-            if(structure[k] == '[') structure[k] = '(';
-            if(structure[k] == ')') structure[k] = ')';
-        }
+        // for(int k=0;k<structure.length();++k){
+        //     if(structure[k] == '[') structure[k] = '(';
+        //     if(structure[k] == ')') structure[k] = ')';
+        // }
+        // exit(0);
+        
         out3 << energy << "\t" << energy2 << "\t" << structure.compare(structure2) << endl;
 
         out3 << endl;
@@ -165,7 +177,7 @@ bool check_Pseudoknot(vector<tuple<int,int> > used, int i, int j){
         int k = get<0>(used[m]);
         int l = get<1>(used[m]);
         // cout << i << "\t" << k << "\t" << l << "\t" << j << endl;
-        if(i==k || j==l) return true;
+        if(i==k || j==l || i==l || j==k) return true;
         if((i < k  && j > k && j < l) || (i < l  && j > l && i > k)) return true;
     }
   return false;

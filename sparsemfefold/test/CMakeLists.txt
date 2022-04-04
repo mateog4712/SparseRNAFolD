@@ -10,7 +10,7 @@ include_directories("${CMAKE_SOURCE_DIR}")
 include_directories("${CMAKE_SOURCE_DIR}/src")
 
 add_executable(tests
-Case1.cpp Test.cpp
+Case3.cpp Test.cpp
 
 )
 

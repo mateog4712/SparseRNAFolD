@@ -421,6 +421,11 @@ get_scaled_params(vrna_md_t *md)
   params->TerminalAU            = RESCALE_dG(TerminalAU37, TerminalAUdH, tempf);
   params->DuplexInit            = RESCALE_dG(DuplexInit37, DuplexInitdH, tempf);
   params->MLbase                = RESCALE_dG(ML_BASE37, ML_BASEdH, tempf);
+  params->PKinit                = 960;
+  params->MLPinit               = 1500;
+  params->BandP                 = 20;
+  params->PLbase                = 10;
+  params->PLregion              = 10;
   params->MLclosing             = RESCALE_dG(ML_closing37, ML_closingdH, tempf);
   params->gquadLayerMismatch    = RESCALE_dG(GQuadLayerMismatch37, GQuadLayerMismatchH, tempf);
   params->gquadLayerMismatchMax = GQuadLayerMismatchMax;

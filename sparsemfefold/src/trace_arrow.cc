@@ -9,6 +9,7 @@ TraceArrows::TraceArrows(size_t n)
       ta_max_(0)
 {}
 
+
 TraceArrow & trace_arrow_from(TraceArrows &t, size_t i, size_t j) {
 return t.trace_arrow_[i].find(j)->second;
 }

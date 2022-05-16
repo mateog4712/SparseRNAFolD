@@ -76,6 +76,11 @@ struct vrna_param_s {
   int       MLbase;
   int       MLintern[NBPAIRS + 1];
   int       MLclosing;
+  int       PKinit;
+  int       MLPinit;
+  int       BandP;
+  int       PLbase;
+  int       PLregion;
   int       TerminalAU;
   int       DuplexInit;
   int       Tetraloop_E[200];

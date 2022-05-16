@@ -72,7 +72,21 @@ public:
      * @brief Construct for sequence of specific length
      * @param n sequence length
      */
-    TraceArrows(size_t n);  
+    TraceArrows(size_t n);
+
+    /**
+     * @brief Clear the TA structure to be used again
+     * 
+     */
+    void reset(){
+        ta_count_ = 0;
+        ta_avoid_ = 0;
+        ta_erase_ = 0;
+        ta_max_ = 0;
+        trace_arrow_.clear();
+    }
+
+      
 };
 
 

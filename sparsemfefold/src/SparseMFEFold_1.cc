@@ -82,6 +82,7 @@ V(i,j) + b  < min {
 extern "C" {
 #include "ViennaRNA/pair_mat.h"
 #include "ViennaRNA/loops/all.h"
+#include "ViennaRNA/params/io.h"
 }
 
 #include "cmdline.hh"
@@ -91,8 +92,31 @@ extern "C" {
 
 
 typedef unsigned short int cand_pos_t;
+
+
+struct triplet
+{
+    cand_pos_t first; 
+    energy_t second;
+    energy_t third;
+	triplet(){
+		first = 1;
+		second = 2;
+		third = 3;
+	}
+	triplet(cand_pos_t x, energy_t y , energy_t z){
+		first = x;
+		second = y;
+		third = z;
+	}
+};
+
+
 typedef std::pair<cand_pos_t,energy_t> cand_entry_t;
 typedef std::vector< cand_entry_t > cand_list_t;
+
+typedef triplet cand_entry_td1;
+typedef std::vector< cand_entry_td1 > cand_list_td1;
 
 class SparseMFEFold;
 
@@ -152,7 +176,7 @@ public:
 
 	TraceArrows ta_;
 	
-	std::vector< cand_list_t > CL_;
+	std::vector< cand_list_td1 > CL_;
 
 	
 	
@@ -169,7 +193,7 @@ public:
 
 	// compare candidate list entries by keys (left index i) in descending order
 	struct {
-	bool operator ()(const cand_entry_t &x, size_t y) const {
+	bool operator ()(const cand_entry_td1 &x, size_t y) const {
 		return x.first > y;
 	}
 	}
@@ -297,7 +321,7 @@ energy_t E_MbLoop(auto const& dmli1, auto const& dmli2, auto const& S, auto cons
 			* ML pair D0
 			*  new closing pair (i,j) with mb part [i+1,j-1]  
 			*/
-			tt  = pair[S[j]][S[i]];
+			
 			if ((p_table[i] <-1 && p_table[j] <-1) || (p_table[i] == j and p_table[j] == i)) {
         		e = dmli1[j - 1];
 
@@ -307,12 +331,12 @@ energy_t E_MbLoop(auto const& dmli1, auto const& dmli2, auto const& S, auto cons
 
         		}
       		}
-     		tt  = pair[S[j]][S[i]];
+     		
       		/** 
 			* ML pair 5
 			* new closing pair (i,j) with mb part [i+2,j-1] 
 			*/
-      		if (((p_table[i] <-1 && p_table[j] <-1) || (p_table[i] == j and p_table[j] == i)) && p_table[i+1] < -1) {
+      		if (((p_table[i] <-1 && p_table[j] <-1) || (p_table[i] == j && p_table[j] == i)) && p_table[i+1] < -1) {
         		en = dmli2[j - 1];
 
         		if (en != INF) {
@@ -357,15 +381,15 @@ energy_t E_MbLoop(auto const& dmli1, auto const& dmli2, auto const& S, auto cons
 			}
 			e   = MIN2(e, en);
       		break;
-		// case 3:
-		// 	if ((p_table[i] <-1 && p_table[j] <-1) || (p_table[i] == j and p_table[j] == i)) {
-		// 		e = dmli1[j - 1];
+		case 0:
+			if ((p_table[i] <-1 && p_table[j] <-1) || (p_table[i] == j and p_table[j] == i)) {
+				e = dmli1[j - 1];
 
-		// 		if (e != INF) {
-		// 			e += E_MLstem(tt, -1, -1, params) + params->MLclosing;
-		// 		}
-		// 	}
-		// 	break; 
+				if (e != INF) {
+					e += E_MLstem(tt, -1, -1, params) + params->MLclosing;
+				}
+			}
+			break; 
 	}
 
 
@@ -375,9 +399,9 @@ energy_t E_MbLoop(auto const& dmli1, auto const& dmli2, auto const& S, auto cons
 * @brief Computes the Multiloop WM contribution 
 * 
 * @param vkj V at k and j
-* @param vk1j V at k+1 and j - INF if not Candidate in traceback
-* @param vkj1 V at k and j-1 - INF if not Candidate in traceback
-* @param vk1j1 V at k+1 and j-1 - INF if not Candidate in traceback
+* @param vk1j V at k+1 and j
+* @param vkj1 V at k and j-1
+* @param vk1j1 V at k+1 and j-1
 * @param WM WM array
 * @param CL Candidate List
 * @param S Sequence Encoding
@@ -388,11 +412,13 @@ energy_t E_MbLoop(auto const& dmli1, auto const& dmli2, auto const& S, auto cons
 * @param p_table Restricted array
 * @return energy_t 
 */
-energy_t E_MLStem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const& vk1j1, auto const& WM, auto const& CL,auto const& S, auto const& params,size_t i, size_t j, auto const& n, auto const& p_table){
+energy_t E_MLStem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const& vk1j1, auto const& WM, auto const& CL,auto const& S, auto const& params,size_t i, size_t j,size_t &k,size_t &l, auto const& n, auto const& p_table){
 
 	int e = INF,en=INF;
 
 	int type = pair[S[i]][S[j]];
+
+	
 	
 
 
@@ -407,11 +433,10 @@ energy_t E_MLStem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const& 
 			e = MIN2(e, en);
 		}
 	}
-
 	if(params->model_details.dangles == 1){
 		int mm5 = S[i], mm3 = S[j];
-		if ((p_table[i+1] < -1 && p_table[j] < -1) || (p_table[i+1] == j && p_table[j] == i+1 && p_table[i] <-1)) {
-      		en = vk1j;
+		if (((p_table[i+1] < -1 && p_table[j] < -1) || (p_table[i+1] == j && p_table[j] == i+1)) && p_table[i] < -1) {
+      		en = (j-(i+1) >TURN) ? vk1j : INF;
       		if (en != INF) {
         		en += params->MLbase;
 
@@ -419,11 +444,15 @@ energy_t E_MLStem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const& 
             	en += E_MLstem(type, mm5, -1, params);
 
         		e = MIN2(e, en);
+				if(e == en){
+					k=i+1;
+					l=j;
+				}
       		}
     	}
 
-		if ((p_table[i] < -1 && p_table[j-1] < -1) || (p_table[i] == j-1 && p_table[j-1] == i && p_table[j] <-1)) {
-      		en = vkj1; 
+		if (((p_table[i] < -1 && p_table[j-1] < -1) || (p_table[i] == j-1 && p_table[j-1] == i)) && p_table[j] < -1) {
+      		en = (j-1-i>TURN) ? vkj1 : INF;
       		if (en != INF) {
        			en += params->MLbase;
 
@@ -431,11 +460,14 @@ energy_t E_MLStem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const& 
             	en += E_MLstem(type, -1, mm3, params);
  
         		e = MIN2(e, en);
+				if(e == en){
+					k=i;
+					l=j-1;
+				}
       		}
     	}
-
-    	if ((p_table[i+1] < -1 && p_table[j-1] < -1) || (p_table[i+1] == j-1 && p_table[j-1] == i+1 && p_table[j] < -1 && p_table[i] < -1)) {
-      		en = vk1j1; // i+1 j-1
+    	if (((p_table[i+1] < -1 && p_table[j-1] < -1) || (p_table[i+1] == j-1 && p_table[j-1] == i+1)) && p_table[i] < -1 && p_table[j]<-1) {
+      		en = (j-1-(i+1)>TURN) ? vk1j1 : INF; // i+1 j-1
       		if (en != INF) {
         		en += 2 * params->MLbase;
 
@@ -443,6 +475,10 @@ energy_t E_MLStem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const& 
         		en += E_MLstem(type, mm5, mm3, params);
         
 				e = MIN2(e, en);
+				if(e == en){
+					k=i+1;
+					l=j-1;
+				}
       		}
     	} 
 		
@@ -520,7 +556,7 @@ auto const recompute_WM(auto const& WM, auto const &CL, auto const& S, auto cons
 			size_t k = it->first;
 			paired = (p_table[k] == j && p_table[j] == k);
 			int mm5 = S[k+1];
-			const energy_t v_kj = E_MLStem(it->second,INF,INF,INF,WM,CL,S,params,k,j,n,p_table);
+			const energy_t v_kj = it->third;
 			bool can_pair = true;
 			for(int m = i;m<k;++m){
 				if(p_table[m]>-1){
@@ -576,7 +612,7 @@ auto const recompute_WM2(auto const& WM, auto const& WM2, auto const CL, auto co
 			size_t k = it->first;
 			paired = (p_table[k] == j && p_table[j] == k);
 			int mm5 = S[k+1];
-			energy_t v_kl = E_MLStem(it->second,INF,INF,INF,WM,CL,S,params,k,j,n,p_table);
+			energy_t v_kl = it->third;
 			wm2 = std::min( wm2, WM[k-1]  + v_kl );
 			if(paired) break;
 		}
@@ -598,7 +634,7 @@ auto const recompute_WM2(auto const& WM, auto const& WM2, auto const CL, auto co
  * @return whether (i,j) is candidate for W/WM splits 
  */
 bool is_candidate(auto const& CL,auto const& cand_comp,size_t i, size_t j) {
-	const cand_list_t &list = CL[j];
+	const cand_list_td1 &list = CL[j];
 
 	auto it = std::lower_bound(list.begin(),list.end(),i,cand_comp);
 
@@ -695,6 +731,7 @@ void trace_V(auto const& seq, auto const& CL, auto const& cand_comp, auto &struc
 		structure[j]=')';
 	}
 	const int ptype_closing = pair[S[i]][S[j]];
+	std::cout << "In V at " << i << " and " << j << std::endl;
 
 	if (exists_trace_arrow_from(ta,i,j)) {
 		// trace arrows may exist for interior loop case
@@ -773,7 +810,7 @@ void trace_WM(auto const& seq, auto const& CL, auto const& cand_comp, auto &stru
 	for ( auto it=CL[j].begin();CL[j].end() != it && it->first>=i;++it ) {
 		const size_t k = it->first;
 		int mm5 = S[k+1];
-		const energy_t v_kj = E_MLStem(it->second,INF,INF,INF,WM,CL,S,params,k,j,n,p_table);
+		const energy_t v_kj = it->third;
 		if ( e == WM[k-1] + v_kj ) {
 		// no recomp, same i
 		trace_WM(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i,k-1,WM[k-1],p_table,last_j_array,in_pair_array);
@@ -825,7 +862,7 @@ void trace_WM2(auto const& seq, auto const& CL, auto const& cand_comp, auto &str
 	for ( auto it=CL[j].begin();CL[j].end() != it  && it->first>=i+TURN+1;++it ) {
 		size_t k = it->first;
 		int mm5 = S[k+1];
-		const energy_t v_kj = E_MLStem(it->second,INF,INF,INF,WM,CL,S,params,k,j,n,p_table);
+		const energy_t v_kj = it->third;
 		if ( e == WM[k-1] + v_kj ) {
 		trace_WM(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i,k-1,WM[k-1],p_table,last_j_array,in_pair_array);
 		trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,k,j,it->second,p_table,last_j_array,in_pair_array);
@@ -874,9 +911,10 @@ energy_t ILoopE(auto const& S, auto const& S1, auto const& params, int ptype_clo
 * @param j end
 * @param e energy of candidate "V(i,j)"
 */
-void register_candidate(auto &CL, size_t i, size_t j, energy_t e) {
+void register_candidate(auto &CL, size_t i, size_t j, energy_t e,energy_t ml) {
 	assert(i<=j+TURN+1);
-	CL[j].push_back( cand_entry_t(i, e) );
+	
+	CL[j].push_back( cand_entry_td1(i,e,ml) );
 }
 
 std::pair< energy_t, energy_t > split_cases( auto const& CL, auto const& WM, auto const& S, auto const& params, int i, int j, auto &km1, int n, int *p_table ) {
@@ -884,12 +922,19 @@ std::pair< energy_t, energy_t > split_cases( auto const& CL, auto const& WM, aut
 	energy_t wm2_split = INF;
 	int mm3 = S[j-1];
 
-	for ( auto const [key,val] : CL) {
+	for ( auto const [key,val,val_ml] : CL) {
 		size_t k = key;
 		int mm5 = S[k+1];
 		bool paired = (p_table[k] == j && p_table[j] == k);
-		energy_t v_kj = E_MLStem(val,INF,INF,INF,WM,CL,S,params,k,j,n,p_table);
+		energy_t v_kj = val_ml;
+		if(!paired){
 		wm_split = std::min( wm_split, WM[k-1] + v_kj );
+		wm2_split = std::min( wm2_split, WM[k-1] + v_kj );
+		}
+		else{
+			wm_split = WM[k-1] + v_kj;
+			wm2_split = WM[k-1] + v_kj;
+		}
 		bool can_pair = true;
 		// checks to see if the unpaired bases till k can happen
 		for(int m = i;m<k;++m){
@@ -899,7 +944,7 @@ std::pair< energy_t, energy_t > split_cases( auto const& CL, auto const& WM, aut
 			}
 		}
 		if(can_pair) wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + v_kj );
-		wm2_split = std::min( wm2_split, WM[k-1] + v_kj );
+		
 		if(wm2_split==WM[k-1] + v_kj) km1 = k-1;
 		
 		if(paired) return std::make_pair( wm_split, wm2_split );
@@ -948,7 +993,7 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 			// W: split case
 			bool pairedkj = 0;
 			energy_t w_split = INF;
-			for ( auto const [key,val] : CL[j] ) {
+			for ( auto const [key,val,val_ml] : CL[j] ) {
 				size_t k=key;
 				int sk1 = (k>1) ? S[k-1] : -1;
 				bool unpairedkj = (p_table[k]<-1 && p_table[j]<-1);
@@ -1034,26 +1079,10 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 						}
 					}
 				}
-				bool unpaired = (p_table[i]<-1 && p_table[j]<-1);
-				bool paired = (p_table[i] == j && p_table[j] == i);
+				
 				const energy_t v_split = E_MbLoop(dmli1,dmli2,S,params,i,j,p_table);
 
 				const energy_t v = std::min(v_h,std::min(v_iloop,v_split));
-
-				const energy_t w_v  = (unpaired || paired) ? v + vrna_E_ext_stem(ptype_closing,si1,sj1,params): INF;
-				const energy_t wm_v = (unpaired || paired) ? E_MLStem(v,INF,INF,INF,WM,CL,S,params,i,j,n,p_table): INF;
-				
-				// update w and wm by v
-				if(paired){
-					w = w_v;
-					wm = wm_v;
-				} else if(pairedkj){
-					w = w_split;
-					wm = wm_split;
-				} else{
-					w  = std::min(w_v, w_split);
-					wm = std::min(wm_v, wm_split);
-				}
 				
 				// register required trace arrows from (i,j)
 				if ( v_iloop < std::min(v_h,v_split) ) {
@@ -1066,18 +1095,48 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 						register_trace_arrow(ta,i,j,best_k,best_l,best_e);
 					}
 				}
-				// check whether (i,j) is a candidate; then register
-				if ( w_v < w_split || wm_v < wm_split || paired) {
-			
-					register_candidate(CL, i, j, v );
-
-					// always keep arrows starting from candidates
-					inc_source_ref_count(ta,i,j);
-				}
 				V(i_mod,j) = v;
 			} else {
 				V(i_mod,j) = INF;
 			} // end if (i,j form a canonical base pair)
+
+			bool unpaired = (p_table[i]<-1 && p_table[j]<-1);
+			bool paired = (p_table[i] == j && p_table[j] == i);
+
+			size_t ip1_mod = (i+1)%(MAXLOOP+1);
+			energy_t vi1j = V(ip1_mod,j);
+			energy_t vij1 = V(i_mod,j-1);
+			energy_t vi1j1 = V(ip1_mod,j-1);
+
+			const energy_t w_v  = (unpaired || paired) ? V(i_mod,j) + vrna_E_ext_stem(ptype_closing,si1,sj1,params): INF;
+			size_t k = i;
+			size_t l = j;
+			const energy_t wm_v = E_MLStem(V(i_mod,j),vi1j,vij1,vi1j1,WM,CL,S,params,i,j,k,l,n,p_table);
+	
+			// update w and wm by v
+			if(paired){
+				w = w_v;
+				wm = wm_v;
+			} else if(pairedkj){
+				w = w_split;
+				wm = wm_split;
+			} else{
+				w  = std::min(w_v, w_split);
+				wm = std::min(wm_v, wm_split);
+			}
+			if(i==9 && j==14) std::cout << paired << " " << pairedkj << " " << wm_split << " " << wm_v << " " << wm << std::endl;
+			if(i==2 && j==14) std::cout << wm_split << std::endl;
+			// check whether (i,j) is a candidate; then register
+				if ( w_v < w_split || wm_v < wm_split || paired) {
+					
+					size_t k_mod = (k)%(MAXLOOP+1);
+
+					register_candidate(CL, k, l, V(k_mod,l),wm_v);
+
+					// always keep arrows starting from candidates
+					inc_source_ref_count(ta,i,j);
+				}
+
 			W[j]       = w;
 			WM[j]      = wm;
 			WM2[j]     = wm2_split;
@@ -1095,7 +1154,7 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 		// Reallocate candidate lists in i
 		for ( auto &x: CL ) {
 			if (x.capacity() > 1.5*x.size()) {
-				cand_list_t vec(x.size());
+				cand_list_td1 vec(x.size());
 				copy(x.begin(),x.end(),vec.begin());
 				vec.swap(x);
 			}
@@ -1208,6 +1267,14 @@ main(int argc,char **argv) {
 		exit(0);
 	}
 
+	std::string file= "";
+	args_info.paramFile_given ? file = parameter_file : file = "";
+	if(file!=""){
+		// FILE *fp;
+    	// fp = fopen(parameter_file.c_str(),"r");
+		vrna_params_load(file.c_str(), VRNA_PARAMETER_FORMAT_DEFAULT);
+	}
+
 	bool verbose;
 	verbose = args_info.verbose_given;
 
@@ -1237,7 +1304,10 @@ main(int argc,char **argv) {
 
 	// float factor=1024;
 	
+	std::cout << "hairpin energies\n" << E_Hairpin(8-3-1,4,sparsemfefold.S1_[3+1],sparsemfefold.S1_[8-1],&seq.c_str()[3-1], const_cast<paramT *>(sparsemfefold.params_)) << std::endl << 
+	E_Hairpin(13-9-1,1,sparsemfefold.S1_[9+1],sparsemfefold.S1_[13-1],&seq.c_str()[9-1], const_cast<paramT *>(sparsemfefold.params_)) << std::endl;
 	
+	std::cout << std::endl;
 	// const std::string unit=" kB";
 	
 	

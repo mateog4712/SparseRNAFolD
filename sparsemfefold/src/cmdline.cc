@@ -27,12 +27,14 @@ const char *args_info_help[] = {
   "  -m, --mark-candidates  Represent candidate base pairs by square brackets",
   "  -r, --input-structure  Give a restricted structure as an input structure",
   "  -d, --dangles=INT      How to treat \"dangling end\" energies for bases adjacent to helices in free ends and multi-loops (default=`2')",
+  "  -P, --paramFile        Read energy parameters from paramfile, instead of using the default parameter set.\n",
   "      --noGC             Turn off garbage collection and related overhead",
   "\nThe input sequence is read from standard input, unless it is\ngiven on the command line.\n",
   
 };
 
-std::string input_structure; 
+std::string input_structure;
+std::string parameter_file; 
 static void clear_given (struct args_info *args_info);
 static void clear_args (struct args_info *args_info);
 
@@ -50,7 +52,8 @@ static void init_args_info(struct args_info *args_info)
   args_info->mark_candidates_help = args_info_help[3] ;
   args_info->input_structure_help = args_info_help[4] ;
   args_info->dangles_help = args_info_help[5];
-  args_info->noGC_help = args_info_help[6] ;
+  args_info->paramFile_help = args_info_help[6] ;
+  args_info->noGC_help = args_info_help[7] ;
   
 }
 void
@@ -97,6 +100,7 @@ static void clear_given (struct args_info *args_info)
   args_info->mark_candidates_given = 0 ;
   args_info->input_structure_given = 0 ;
   args_info->dangles_given = 0 ;
+   args_info->paramFile_given = 0 ;
   args_info->noGC_given = 0 ;
 }
 
@@ -289,11 +293,12 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         { "mark-candidates",	0, NULL, 'm' },
         { "input-structure",	required_argument, NULL, 'r' },
         { "dangles", required_argument, NULL, 'd'},
+        { "paramFile",	required_argument, NULL, 'P' },
         { "noGC",	0, NULL, 0 },
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVvmr:d:", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVvmr:d:P:", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -352,6 +357,17 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
 
             dangles = strtol(optarg,NULL,10);
         
+          break;
+
+          case 'P':	/* Take in a different Parameter File.  */
+        
+        
+          if (update_arg( 0 , 
+               0 , &(args_info->paramFile_given),
+              &(local_args_info.paramFile_given), optarg, 0, 0, ARG_NO,0, 0,"paramFile", 'P',additional_error))
+            goto failure;
+
+            parameter_file = optarg;
           break;
 
         case 0:	/* Long option with no short option */

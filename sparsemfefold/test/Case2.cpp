@@ -32,12 +32,13 @@ while(getline(in,str)){
 }
 in.close();
 
-string command = "./build/src/SparseMFEFold -m ";
-string command2 = "/home/mgray7/RNAfold/build/src/RNAFold ";
+string command = "./build/src/SparseMFEFold -d1 ";
+string command2 = "/home/mgray7/RNAfold/build/src/RNAFold -d1";
 double score = 0;
 int size = seqs.size();
 // exit(0);
-ofstream out3("results.txt");
+string filename = "/home/mgray7/output2/results/" + family +".txt";
+ofstream out3(filename);
 for(int i =0;i<size;++i){
     string commands = command + seqs[i] +  " > out.txt";
     system(commands.c_str());

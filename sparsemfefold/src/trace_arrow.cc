@@ -83,12 +83,23 @@ void gc_trace_arrow(TraceArrows &t, size_t i, size_t j) {
 	t.ta_erase_++;
     }
 }
+void gc_row(TraceArrows &t,TraceArrows &td, size_t i ) {
+    assert(i<=t.n_);
+    // i + TURN + 1
+    for (size_t j=i+4; j<=t.n_ ; j++) {
+        bool tiExistsj = t.trace_arrow_[i].exists(j);
+        bool tdiExistsj = td.trace_arrow_[i].exists(j);
+	    if (!tiExistsj && !tdiExistsj) continue;
+	    if(tiExistsj) gc_trace_arrow(t,i,j);
+        if(tdiExistsj) gc_trace_arrow(td,i,j);
+    }
+}
 void gc_row(TraceArrows &t, size_t i ) {
     assert(i<=t.n_);
-
-    for (size_t j=1; j<=t.n_ ; j++) {
-	if (! t.trace_arrow_[i].exists(j)) continue;
-	gc_trace_arrow(t,i,j);
+    // i + TURN + 1
+    for (size_t j=i+4; j<=t.n_ ; j++) {
+	    if (! t.trace_arrow_[i].exists(j)) continue;
+	    gc_trace_arrow(t,i,j);
     }
 }
 

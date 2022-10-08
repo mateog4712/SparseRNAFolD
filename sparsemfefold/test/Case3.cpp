@@ -74,7 +74,8 @@ int main(int argc,char **argv) {
         string intermediary = make_structure(seqs[i]);
         cout << intermediary << endl;
         
-        string commands = command + " -r \"" + intermediary + "\" " + seqs[i] +  " > out.txt";
+        string commands = command + " -d 1 -r \"" + intermediary + "\" " + seqs[i] +  " > out.txt";
+        // std::cout << commands << std::endl;
         system(commands.c_str());
 
         ifstream in1("out.txt");
@@ -94,7 +95,7 @@ int main(int argc,char **argv) {
         out1.close();
         string infile = "/home/mgray7/RNAfold/in.txt";
     
-        string commands2 = command2 + "--enforceConstraint --constraint<" + infile + " > /home/mgray7/RNAfold/out.txt";
+        string commands2 = command2 + "-d1 --enforceConstraint --constraint<" + infile + " > /home/mgray7/RNAfold/out.txt";
         system(commands2.c_str());
 
         ifstream in2("/home/mgray7/RNAfold/out.txt");

@@ -151,6 +151,8 @@ void gc_trace_arrow(TraceArrows &t, size_t i, size_t j);
 
 void gc_row(TraceArrows &t, size_t i );
 
+void gc_row(TraceArrows &t,TraceArrows &td, size_t i );
+
 
 /**
 * @brief Compactify heap space

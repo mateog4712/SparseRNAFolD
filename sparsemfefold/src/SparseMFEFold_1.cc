@@ -1012,7 +1012,7 @@ energy_t ILoopE(auto const& S, auto const& S1, auto const& params, const int& pt
 * @param j end
 * @param e energy of candidate "V(i,j)"
 */
-void register_candidate(auto &CL, size_t i, size_t j, energy_t e,energy_t ml,energy_t wl) {
+void register_candidate(auto &CL, size_t const& i, size_t const& j, energy_t const& e,energy_t const& ml,energy_t const& wl) {
 	assert(i<=j+TURN+1);
 	
 	CL[j].push_back( cand_entry_td1(i,e,ml,wl) );
@@ -1139,6 +1139,7 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 						if(V(k_mod,l) == INF) continue;
 						
 						const energy_t v_iloop_kl = cank && up_array[j-1]>=(j-l-1) ? V(k_mod,l) + ILoopE(S,S1,params,ptype_closing,i,j,k,l): INF;
+						// const energy_t v_iloop_kl = cank && up_array[j-1]>=(j-l-1) ? V(k_mod,l) + E_IntLoop(k-i-1,j-l-1,ptype_closing,rtype[pair[S[k]][S[l]]],S1[i+1],S1[j-1],S1[k-1],S1[l+1],const_cast<paramT *>(params)) : INF;
 						if ( v_iloop_kl < v_iloop) {
 							v_iloop = v_iloop_kl;
 							best_l=l;

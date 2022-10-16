@@ -64,7 +64,7 @@ V(i,j) + b  < min {
 
 #include <sstream>
 
-#include <LocARNA/matrix.hh>
+#include <matrix.hh>
 
 #include <limits>
 
@@ -77,7 +77,7 @@ V(i,j) + b  < min {
 #include <numeric>
 
 #include "base.hh"
-#include "trace_arrow.hh"
+#include "trace_arrows1.hh"
 
 extern "C" {
 #include "ViennaRNA/pair_mat.h"
@@ -360,10 +360,12 @@ energy_t E_ext_Stem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const
 void rotate_arrays(auto &WM, auto &WM2, auto &dmli1, auto &dmli2, auto n){
 	
 
-	for (int j = 1; j <= n; j++){
-		dmli2[j] = dmli1[j];
-		dmli1[j] = WM2[j];
-	} 
+	// for (int j = 1; j <= n; j++){
+	// 	dmli2[j] = dmli1[j];
+	// 	dmli1[j] = WM2[j];
+	// } 
+	dmli2.swap(dmli1);
+    dmli1.swap(WM2);
 }
 
 
@@ -1018,6 +1020,47 @@ void register_candidate(auto &CL, size_t const& i, size_t const& j, energy_t con
 	CL[j].push_back( cand_entry_td1(i,e,ml,wl) );
 }
 
+
+/**
+* @brief Register a candidate
+* @param i start
+* @param j end
+* @param e energy of candidate "V(i,j)"
+*/
+void register_candidate(auto &CL, size_t i, size_t j, energy_t e) {
+	assert(i<=j+TURN+1);
+	CL[j].push_back( cand_entry_t(i, e) );
+}
+
+// std::tuple< energy_t, energy_t,energy_t> split_cases( auto const& CL, auto const& WM, auto const& W, auto const& params, int i, int j, auto &km1,auto &pairedkj,const int *p_table,const int *up_array) {
+// 	energy_t w_split = INF;
+// 	energy_t wm_split = INF;
+// 	energy_t wm2_split = INF;
+// 	for ( auto const [key,val,val_ml,val_w] : CL[j] ) {
+// 		size_t k=key;
+// 		bool unpairedkj = (p_table[k]<-1 && p_table[j]<-1);
+// 		pairedkj = (p_table[k] == j);
+		
+// 		bool can_pair = up_array[k-1] >= (k-i) ? true: false;
+// 		if(pairedkj){
+// 			wm_split = WM[k-1] + val_ml;
+// 			if(can_pair) wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + val_ml );
+// 			wm2_split = WM[k-1] + val_ml;
+// 			w_split = W[k-1] + val_w; 
+// 			km1 = k-1;
+// 			break;
+// 		}else{
+// 			wm_split = std::min( wm_split, WM[k-1] + val_ml );
+// 			if(can_pair) wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + val_ml );
+// 			wm2_split = std::min( wm2_split, WM[k-1] + val_ml );
+// 			w_split = std::min( w_split, W[k-1] + val_w );
+// 			if(wm2_split==WM[k-1] + val_ml) km1 = k-1;
+// 		}
+// 	}
+	
+// 	return std::make_tuple(w_split, wm_split, wm2_split );
+// }
+
 /**
  * @brief Evaluates whether a pairing can occur based on the restriction
  * 
@@ -1084,6 +1127,7 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 					if(wm2_split==WM[k-1] + val_ml) km1 = k-1;
 				}
 			}
+			// auto [w_split,wm_split,wm2_split] = split_cases(CL,WM,W,params,i,j,km1,pairedkj,p_table,up_array);
 			if(p_table[j]<0) w_split = std::min(w_split,W[j-1]);
 			if(p_table[j]<0) wm2_split = std::min( wm2_split, WM2[j-1] + params->MLbase );
 			if(p_table[j]<0) wm_split = std::min( wm_split, WM[j-1] + params->MLbase );
@@ -1126,7 +1170,7 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 				// j-i>=TURN+3
 				//
 				size_t max_k = std::min(j-TURN-2,i+MAXLOOP+1);
-				// #pragma omp parallel for num_threads(6);
+				// #pragma omp parallel for 
 				for ( size_t k=i+1; k<=max_k; k++) {
 					size_t k_mod=k%(MAXLOOP+1);
 					

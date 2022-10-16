@@ -9,143 +9,70 @@ TraceArrows::TraceArrows(size_t n)
       ta_max_(0)
 {}
 
-
-TraceArrow & trace_arrow_from(TraceArrows &t, size_t i, size_t j) {
-return t.trace_arrow_[i].find(j)->second;
+void
+TraceArrows::resize(size_t n) {
+    trace_arrow_.resize(n);
 }
 
-bool exists_trace_arrow_from(TraceArrows &t,size_t i, size_t j){
-return t.trace_arrow_[i].exists(j);
-}
+void
+TraceArrows::gc_trace_arrow(size_t i, size_t j) {
 
+    assert( trace_arrow_[i].exists(j) );
 
-void avoid_trace_arrow(TraceArrows &t){
-    t.ta_avoid_++;
-}
-
-
-
-void register_trace_arrow(TraceArrows &t,size_t i, size_t j,size_t k, size_t l,energy_t e) {
-// std::cout << "register_trace_arrow "<<i<<" "<<j<<" "<<k<<" "<<l<<std::endl;
-t.trace_arrow_[i].push_ascending( j, TraceArrow(i,j,k,l,e) );
-
-inc_source_ref_count(t,k,l);
-
-t.ta_count_++;
-t.ta_max_ = std::max(t.ta_max_,t.ta_count_);
-}
-
-
-void inc_source_ref_count(TraceArrows &t, size_t i, size_t j) {
-	// get trace arrow from (i,j) if it exists
-	if (! t.trace_arrow_[i].exists(j)) return;
-
-	auto it=t.trace_arrow_[i].find(j);
-
-	TraceArrow &ta=it->second;
-
-	ta.inc_src();
-}
-
-
-
-/**
- * @brief Resizes the trace arrows list to size n
- * 
- * @param t Trace Arrows list
- * @param n New size
- */
-void resize(TraceArrows &t,size_t n) {
-    t.trace_arrow_.resize(n);
-}
-
-
-void gc_trace_arrow(TraceArrows &t, size_t i, size_t j) {
-
-    assert( t.trace_arrow_[i].exists(j) );
-
-    auto col = t.trace_arrow_[i].find(j);
+    auto col = trace_arrow_[i].find(j);
 
     const auto &ta = col->second;
 
     if (ta.source_ref_count() == 0) {
 	// get trace arrow from the target if the arrow exists
-	if (exists_trace_arrow_from(t,ta.k(i,j),ta.l(i,j))) {
-	    auto &target_ta = trace_arrow_from(t,ta.k(i,j),ta.l(i,j));
+	if (exists_trace_arrow_from(ta.k(i,j),ta.l(i,j))) {
+	    auto &target_ta = trace_arrow_from(ta.k(i,j),ta.l(i,j));
 
 	    target_ta.dec_src();
 
-	    gc_trace_arrow(t,ta.k(i,j),ta.l(i,j));
+	    gc_trace_arrow(ta.k(i,j),ta.l(i,j));
 	}
 
-	t.trace_arrow_[i].erase(col);
-	t.ta_count_--;
-	t.ta_erase_++;
-    }
-}
-void gc_row(TraceArrows &t,TraceArrows &td, size_t i ) {
-    assert(i<=t.n_);
-    // i + TURN + 1
-    for (size_t j=i+4; j<=t.n_ ; j++) {
-        bool tiExistsj = t.trace_arrow_[i].exists(j);
-        bool tdiExistsj = td.trace_arrow_[i].exists(j);
-	    if (!tiExistsj && !tdiExistsj) continue;
-	    if(tiExistsj) gc_trace_arrow(t,i,j);
-        if(tdiExistsj) gc_trace_arrow(td,i,j);
-    }
-}
-void gc_row(TraceArrows &t, size_t i ) {
-    assert(i<=t.n_);
-    // i + TURN + 1
-    for (size_t j=i+4; j<=t.n_ ; j++) {
-	    if (! t.trace_arrow_[i].exists(j)) continue;
-	    gc_trace_arrow(t,i,j);
+	trace_arrow_[i].erase(col);
+	ta_count_--;
+	ta_erase_++;
     }
 }
 
 
+void
+TraceArrows::gc_row( size_t i ) {
+    assert(i<=n_);
 
-void compactify(TraceArrows &t) {
-    for ( auto &x: t.trace_arrow_ ) {
+    for (size_t j=1; j<=n_ ; j++) {
+	if (! trace_arrow_[i].exists(j)) continue;
+	gc_trace_arrow(i,j);
+    }
+}
+
+void
+TraceArrows::compactify() {
+    for ( auto &x: trace_arrow_ ) {
 	if (x.capacity() > 1.2 * x.size()) {
 	    x.reallocate();
 	}
     }
 }
 
-
-
-
-
-
-
-
-
-
-size_t numberT(TraceArrows &t){
+size_t
+TraceArrows::number() const {
     size_t c=0;
-    for ( auto &x: t.trace_arrow_ ) {
+    for ( auto &x: trace_arrow_ ) {
 	c += x.size();
-    }
-    return c; 
-}
-
-size_t capacityT(TraceArrows &t){
-    size_t c=0;
-    for ( auto &x: t.trace_arrow_ ) {
-	c += x.capacity();
     }
     return c;
 }
-size_t erasedT(TraceArrows &t){
-    return t.ta_erase_;
-}
-size_t sizeT(TraceArrows &t){
-    return t.ta_count_;
-}
-size_t avoidedT(TraceArrows &t){
-    return t.ta_avoid_;
-}
-size_t maxT(TraceArrows &t){
-    return t.ta_max_;
+
+size_t
+TraceArrows::capacity() const {
+    size_t c=0;
+    for ( auto &x: trace_arrow_ ) {
+	c += x.capacity();
+    }
+    return c;
 }

@@ -15,6 +15,11 @@ set(sparsemfefold_SOURCE
     src/trace_arrow1.cc 
 )
 
+set(test_SOURCE
+test/Case3.cpp 
+test/Test.cpp
+)
+
 set(constraints_SOURCE
     src/ViennaRNA/constraints/constraints.c
     src/ViennaRNA/constraints/hard.c
@@ -87,7 +92,11 @@ target_include_directories(RNA PRIVATE .)
 
 add_executable(SparseMFEFold ${sparsemfefold_SOURCE})
 
+add_executable(tests ${test_SOURCE})
+
 target_link_libraries(SparseMFEFold PRIVATE RNA)
+
+target_link_libraries(tests PRIVATE RNA)
 
 
 include_directories(src)

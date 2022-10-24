@@ -32,8 +32,8 @@ while(getline(in,str)){
 }
 in.close();
 
-string command = "./build/src/SparseMFEFold -d1 ";
-string command2 = "/home/mgray7/RNAfold/build/src/RNAFold -d1";
+string command = "./build/SparseMFEFold -d2 ";
+string command2 = "/home/mgray7/includes/vienna/bin/RNAfold -d2 --noPS";
 double score = 0;
 int size = seqs.size();
 // exit(0);
@@ -72,10 +72,10 @@ for(int i =0;i<size;++i){
     out3 << seqs[i] << endl;
     out3 << structure << endl;
     out3 << structure2 << endl;
-    for(int k=0;k<structure.length();++k){
-        if(structure[k] == '[') structure[k] = '(';
-        if(structure[k] == ')') structure[k] = ')';
-    }
+    // for(int k=0;k<structure.length();++k){
+    //     if(structure[k] == '[') structure[k] = '(';
+    //     if(structure[k] == ')') structure[k] = ')';
+    // }
     out3 << energy << "\t" << energy2 << "\t" << structure.compare(structure2) << endl;
 
     out3 << endl;

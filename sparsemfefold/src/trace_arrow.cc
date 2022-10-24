@@ -24,18 +24,18 @@ TraceArrows::gc_trace_arrow(size_t i, size_t j) {
     const auto &ta = col->second;
 
     if (ta.source_ref_count() == 0) {
-	// get trace arrow from the target if the arrow exists
-	if (exists_trace_arrow_from(ta.k(i,j),ta.l(i,j))) {
-	    auto &target_ta = trace_arrow_from(ta.k(i,j),ta.l(i,j));
+        // get trace arrow from the target if the arrow exists
+        if (exists_trace_arrow_from(ta.k(i,j),ta.l(i,j))) {
+            auto &target_ta = trace_arrow_from(ta.k(i,j),ta.l(i,j));
 
-	    target_ta.dec_src();
+            target_ta.dec_src();
 
-	    gc_trace_arrow(ta.k(i,j),ta.l(i,j));
-	}
+            gc_trace_arrow(ta.k(i,j),ta.l(i,j));
+        }
 
-	trace_arrow_[i].erase(col);
-	ta_count_--;
-	ta_erase_++;
+        trace_arrow_[i].erase(col);
+        ta_count_--;
+        ta_erase_++;
     }
 }
 

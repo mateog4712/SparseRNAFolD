@@ -62,17 +62,19 @@ int main(int argc,char **argv) {
     // cout << intermediary << endl;
     // exit(0);
 
-    string command = "./build/src/SparseMFEFold ";
-    string command2 = "/home/mgray7/RNAfold/build/src/RNAFold ";
+    string command = "./build/SparseMFEFold -d1";
+    // string command2 = "/home/mgray7/includes/vienna/bin/RNAfold -d1 --noPS ";
+    string command2 = "/home/mgray7/RNAfold/build/src/RNAFold -d1 --noPS ";
     double score = 0;
     int size = seqs.size();
     // exit(0);
     string filename = "/home/mgray7/output2/results/" + family +".txt";
     ofstream out3(filename);
     for(int i =0;i<size;++i){
-        cout << i << endl;
+        // cout << i << endl;
         string intermediary = make_structure(seqs[i]);
-        cout << intermediary << endl;
+        // cout << seqs[i] << endl;
+        // cout << intermediary << endl;
         
         string commands = command + " -r \"" + intermediary + "\" " + seqs[i] +  " > out.txt";
         // std::cout << commands << std::endl;

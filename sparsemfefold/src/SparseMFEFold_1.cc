@@ -281,7 +281,7 @@ energy_t E_ext_Stem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const
 			}
 			break;
 		case 1:
-			if ((p_table[i] <-1 && p_table[j] <-1) || (p_table[i] == j)){
+			if (((p_table[i] <-1 && p_table[j] <-1) || (p_table[i] == j))){
 				en = vkj; // i j
 
 				if (en != INF) {
@@ -293,7 +293,7 @@ energy_t E_ext_Stem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const
 
 			}
 			tt  = pair[S[i+1]][S[j]];
-			if ((p_table[i+1] <-1 && p_table[j] <-1) || (p_table[i+1] == j) &&p_table[i]<-1) {
+			if (((p_table[i+1] <-1 && p_table[j] <-1) || (p_table[i+1] == j)) &&p_table[i]<-1) {
 				en = (j-i-1>TURN) ? vk1j : INF; //i+1 j
 
 				if (en != INF) {
@@ -310,7 +310,7 @@ energy_t E_ext_Stem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const
 
 			}
 			tt  = pair[S[i]][S[j-1]];
-			if ((p_table[i] <-1 && p_table[j-1] <-1) || (p_table[i] == j-1) && p_table[j]<-1) {
+			if (((p_table[i] <-1 && p_table[j-1] <-1) || (p_table[i] == j-1)) && p_table[j]<-1) {
 				en = (j-1-i>TURN) ? vkj1 : INF; // i j-1
 				if (en != INF) {
 
@@ -326,7 +326,7 @@ energy_t E_ext_Stem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const
 
 			}
 			tt  = pair[S[i+1]][S[j-1]];
-			if ((p_table[i+1] <-1 && p_table[j-1] <-1) || (p_table[i+1] == j-1) && p_table[i] < -1 && p_table[j]<-1) {
+			if (((p_table[i+1] <-1 && p_table[j-1] <-1) || (p_table[i+1] == j-1)) && p_table[i] < -1 && p_table[j]<-1) {
 				en = (j-1-i-1>TURN) ? vk1j1 : INF; // i+1 j-1
 
 				if (en != INF) {
@@ -350,20 +350,11 @@ energy_t E_ext_Stem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const
 
 /**
 * @brief Rotate WM2 arrays to store the previous and previous previous iterations
-* 
-* @param WM WM array
 * @param WM2 WM2 array
 * @param dmli1 WM2 from one iteration ago
 * @param dmli2 WM2 from two iterations ago
-* @param n Length
 */
-void rotate_arrays(auto &WM, auto &WM2, auto &dmli1, auto &dmli2, auto n){
-	
-
-	// for (int j = 1; j <= n; j++){
-	// 	dmli2[j] = dmli1[j];
-	// 	dmli1[j] = WM2[j];
-	// } 
+void rotate_arrays(auto &WM2, auto &dmli1, auto &dmli2){
 	dmli2.swap(dmli1);
     dmli1.swap(WM2);
 }
@@ -521,7 +512,7 @@ energy_t E_MLStem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const& 
 	if(params->model_details.dangles == 1){
 		int mm5 = S[i], mm3 = S[j];
 
-		if ((p_table[i+1] < -1 && p_table[j] < -1) || (p_table[i+1] == j) && p_table[i] < -1) {
+		if (((p_table[i+1] < -1 && p_table[j] < -1) || (p_table[i+1] == j)) && p_table[i] < -1) {
       		en = (j-(i+1) >TURN) ? vk1j : INF; // i+1 j
       		if (en != INF) {
         		en += params->MLbase;
@@ -635,20 +626,17 @@ auto const recompute_WM(auto const& WM, auto const &CL, auto const& S, auto cons
 	
 	for ( size_t j=i+TURN+1; j<=max_j; j++ ) {
 		energy_t wm = INF;
-		bool paired;
-		int mm3 = S[j-1];
+		bool paired = 0;
 		// #pragma omp parallel for num_threads(6);
 		for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>=i ; ++it ) {
 			size_t k = it->first;
-			paired = (p_table[k] == j);
-			int mm5 = S[k+1];
+			paired += (p_table[k] == j);
 			const energy_t v_kj = it->third;
 			bool can_pair = up_array[k-1] >= (k-i) ? true : false;
 			if(can_pair) wm = std::min( wm, static_cast<energy_t>(params->MLbase*(k-i)) + v_kj );
 			wm = std::min( wm, temp[k-1]  + v_kj );
-			if(paired) break;
 		}
-		if(p_table[j]<0) wm = std::min(wm, temp[j-1] + params->MLbase);
+		if(p_table[j]<0 && !paired) wm = std::min(wm, temp[j-1] + params->MLbase);
 		temp[j] = wm;
 	}
 	return temp;
@@ -684,19 +672,15 @@ auto const recompute_WM2(auto const& WM, auto const& WM2, auto const CL, auto co
 	// #pragma omp parallel for num_threads(6);
 	for ( size_t j=i+2*TURN+3; j<=max_j; j++ ) {
 		energy_t wm2 = INF;
-		bool paired;
-		int mm3 = S[j-1];
+		bool paired = 0;
 		for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>i+TURN+1 ; ++it ) {
 			
 			size_t k = it->first;
-			paired = (p_table[k] == j && p_table[j] == k);
-			int mm5 = S[k+1];
+			paired += (p_table[k] == j && p_table[j] == k);
 			energy_t v_kl = it->third;
 			wm2 = std::min( wm2, WM[k-1]  + v_kl );
-			if(paired) break;
 		}
-		if(p_table[j]<0) wm2 = std::min(wm2, temp[j-1] + params->MLbase);
-		// if(evaluate_restriction(i,j,last_j_array,in_pair_array)) wm2=INF;
+		if(p_table[j]<0 && !paired) wm2 = std::min(wm2, temp[j-1] + params->MLbase);
 		temp[j] = wm2;
 	}
 	return temp;
@@ -718,7 +702,35 @@ bool is_candidate(auto const& CL,auto const& cand_comp,size_t i, size_t j) {
 	auto it = std::lower_bound(list.begin(),list.end(),i,cand_comp);
 
 	return it!=list.end() && it->first==i;
+}
+/**
+ * Within the traceback, this function finds whether the multiloop has a dangle on the closing pair
+*/
+void find_mb_dangle(const energy_t &vkj,const energy_t &vk1j,const energy_t &vkj1,const energy_t &vk1j1,auto const &params, auto const& S, const size_t &i, const size_t &j, size_t &k, size_t &l,const int* p_table){
+	if(params->model_details.dangles == 2) return;
+
+	int tt = pair[S[i]][S[j]];
+	energy_t e1 = vkj +  E_MLstem(tt, -1, -1, params);
+	energy_t e2 = vk1j +  E_MLstem(tt, -1, S[i+1], params);
+	energy_t e3 = vk1j +  E_MLstem(tt, S[j-1], -1, params);
+	energy_t e4 = vk1j +  E_MLstem(tt, S[j-1], S[i+1], params);
+	energy_t e = e1;
+	if(e2<e && p_table[i+1]< 0){
+		e = e2;
+		k = i+2;
+		l = j-1;
 	}
+	if(e3<e && p_table[j-1]< 0){
+		e = e3;
+		k = i+1;
+		l = j-2;
+	}
+	if(e4<e && p_table[i+1]< 0 && p_table[j-1]< 0){
+		e = e4;
+		k = i+2;
+		l = j-2;
+	}
+ }
 
 /**
  * @brief Trace from W entry
@@ -820,45 +832,37 @@ void trace_V(auto const& seq, auto const& CL, auto const& cand_comp, auto &struc
 		structure[j]=')';
 	}
 	const int ptype_closing = pair[S[i]][S[j]];
-	// if(i==253 && j==290) std::cout << "here" << std::endl;
-	
-	if (exists_trace_arrow_from(ta,i,j) || exists_trace_arrow_from(ta_dangle,i,j)) {
+	if (exists_trace_arrow_from(ta,i,j)) {
 		// trace arrows may exist for interior loop case || dangle
 		// const TraceArrow &arrow = trace_arrow_from(ta,i,j);
 		
-		bool dangle = exists_trace_arrow_from(ta_dangle,i,j);
-		const TraceArrow &arrow = dangle ? trace_arrow_from(ta_dangle,i,j) : trace_arrow_from(ta,i,j);
+		const TraceArrow &arrow = trace_arrow_from(ta,i,j);
 		const size_t k=arrow.k(i,j);
 		const size_t l=arrow.l(i,j);
-		assert(i<=k);
-		assert(l<=j);
-		// Check to make sure that if it's a dangle, you're not adding an extra parantheses
-		if((k==i+1 || l == j-1) && dangle){
-			structure[i] = '.';
-			structure[j] = '.';
-		}
-		// if(i==252 && j==291) std::cout << e << "    " << arrow.target_energy() << std::endl;
+		assert(i<k);
+		assert(l<j);
+		
 		trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,ta_dangle,WM,WM2,n,mark_candidates,k,l, arrow.target_energy(),p_table,last_j_array,in_pair_array,up_array);
 		return;
 
 	}
-	 else {
+	else {
 
-		assert(ptype_closing>0);
-		// if(i==253 && j==290) std::cout << e << std::endl;
+		// assert(ptype_closing>0);
 		// try to trace back to a candidate: (still) interior loop case
 		for ( size_t l=i; l<j; l++) {
-		for ( auto it=CL[l].begin(); CL[l].end()!=it && it->first>i; ++it ) {
-			const size_t k=it->first;
-			// if(i==253 && j==290) std::cout << k << " and " << j << " with v = " << it->second + ILoopE(S,S1,params,ptype_closing,i,j,k,l) << std::endl;
-			if (  e == it->second + ILoopE(S,S1,params,ptype_closing,i,j,k,l) ) {
-				trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,ta_dangle,WM,WM2,n,mark_candidates,k,l,it->second,p_table,last_j_array,in_pair_array,up_array);
-			return;
+			// Break if it's an assured dangle case
+			if(ptype_closing<=0) break;
+			for ( auto it=CL[l].begin(); CL[l].end()!=it && it->first>i; ++it ) {
+				const size_t k=it->first;
+				if (  e == it->second + ILoopE(S,S1,params,ptype_closing,i,j,k,l) ) {
+					trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,ta_dangle,WM,WM2,n,mark_candidates,k,l,it->second,p_table,last_j_array,in_pair_array,up_array);
+					return;
+				}
 			}
 		}
-		}
 	}
-	
+
 	// is this a hairpin?
 	if ( e == HairpinE(seq,S,S1,params,i,j) ) {
 		return;
@@ -871,7 +875,21 @@ void trace_V(auto const& seq, auto const& CL, auto const& cand_comp, auto &struc
 	auto const temp2 = recompute_WM2(WM,WM2,CL,S,params,n,i+1,j-1,p_table,last_j_array,in_pair_array);
 	WM2 = temp2;
 	
-	trace_WM2(seq,CL,cand_comp,structure,params,S,S1,ta,ta_dangle,WM,WM2,n,mark_candidates,i+1,j-1,p_table,last_j_array,in_pair_array,up_array);
+	// Dangle for Multiloop
+	size_t k = i+1;
+	size_t l = j-1;
+	if(params->model_details.dangles == 1){
+		auto const temp3 = recompute_WM(WM,CL,S,params,n,i+2,j-1,p_table,up_array);
+		auto const temp4 = recompute_WM2(temp3,WM2,CL,S,params,n,i+2,j-1,p_table,last_j_array,in_pair_array);
+		find_mb_dangle(temp2[j-1],temp4[j-1],temp2[j-2],temp4[j-2],params,S,i,j,k,l,p_table);
+		if (k>i+1){
+			WM = temp3;
+			WM2 = temp4;
+		}
+	}
+	
+	
+	trace_WM2(seq,CL,cand_comp,structure,params,S,S1,ta,ta_dangle,WM,WM2,n,mark_candidates,k,l,p_table,last_j_array,in_pair_array,up_array);
 }
 
 /**
@@ -909,16 +927,24 @@ void trace_WM(auto const& seq, auto const& CL, auto const& cand_comp, auto &stru
 	}
 	int mm3 = S[j-1];
 	for ( auto it=CL[j].begin();CL[j].end() != it && it->first>=i;++it ) {
-		const size_t k = it->first;
-		int mm5 = S[k+1];
+		const size_t m = it->first;
 		const energy_t v_kj = it->third;
-		if ( e == WM[k-1] + v_kj ) {
+		size_t k = m;
+		size_t l = j;
+		energy_t v = it->second;
+		if(exists_trace_arrow_from(ta_dangle,k,j) ){
+			const TraceArrow &arrow = trace_arrow_from(ta_dangle,k,j);
+			k=arrow.k(k,j);
+			l=arrow.l(k,j);
+			v = arrow.target_energy();
+		}
+		if ( e == WM[m-1] + v_kj ) {
 		// no recomp, same i
-		trace_WM(seq,CL,cand_comp,structure,params,S,S1,ta,ta_dangle,WM,WM2,n,mark_candidates,i,k-1,WM[k-1],p_table,last_j_array,in_pair_array,up_array);
-		trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,ta_dangle,WM,WM2,n,mark_candidates,k,j,it->second,p_table,last_j_array,in_pair_array,up_array);
+		trace_WM(seq,CL,cand_comp,structure,params,S,S1,ta,ta_dangle,WM,WM2,n,mark_candidates,i,m-1,WM[m-1],p_table,last_j_array,in_pair_array,up_array);
+		trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,ta_dangle,WM,WM2,n,mark_candidates,k,l,v,p_table,last_j_array,in_pair_array,up_array);
 		return;
 		} else if ( e == static_cast<energy_t>((k-i)*params->MLbase) + v_kj ) {
-		trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,ta_dangle,WM,WM2,n,mark_candidates,k,j,it->second,p_table,last_j_array,in_pair_array,up_array);
+		trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,ta_dangle,WM,WM2,n,mark_candidates,k,l,v,p_table,last_j_array,in_pair_array,up_array);
 		return;
 		}
 	}
@@ -961,14 +987,22 @@ void trace_WM2(auto const& seq, auto const& CL, auto const& cand_comp, auto &str
 		trace_WM2(seq,CL,cand_comp,structure,params,S,S1,ta,ta_dangle,WM,WM2,n,mark_candidates,i,j-1,p_table,last_j_array,in_pair_array,up_array);
 		return;
 	}
-	int mm3 = S[j-1];
+
 	for ( auto it=CL[j].begin();CL[j].end() != it  && it->first>=i+TURN+1;++it ) {
-		size_t k = it->first;
-		int mm5 = S[k+1];
+		size_t m = it->first;
 		const energy_t v_kj = it->third;
-		if ( e == WM[k-1] + v_kj ) {
-		trace_WM(seq,CL,cand_comp,structure,params,S,S1,ta,ta_dangle,WM,WM2,n,mark_candidates,i,k-1,WM[k-1],p_table,last_j_array,in_pair_array,up_array);
-		trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,ta_dangle,WM,WM2,n,mark_candidates,k,j,it->second,p_table,last_j_array,in_pair_array,up_array);
+		size_t k = m;
+		size_t l = j;
+		energy_t v = it->second;
+		if(exists_trace_arrow_from(ta_dangle,k,j) ){
+			const TraceArrow &arrow = trace_arrow_from(ta_dangle,k,j);
+			k=arrow.k(k,j);
+			l=arrow.l(k,j);
+			v = arrow.target_energy();
+		}
+		if ( e == WM[m-1] + v_kj ) {
+		trace_WM(seq,CL,cand_comp,structure,params,S,S1,ta,ta_dangle,WM,WM2,n,mark_candidates,i,m-1,WM[m-1],p_table,last_j_array,in_pair_array,up_array);
+		trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,ta_dangle,WM,WM2,n,mark_candidates,k,l,v,p_table,last_j_array,in_pair_array,up_array);
 		return;
 		}
 	}
@@ -1094,10 +1128,7 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 		int si1 = (i>1) ? S[i-1] : -1;
 		// bool canH = (p_table[i+1] <0 && p_table[i+2] <0 && p_table[i+3] <0);
 		for ( size_t j=i+TURN+1; j<=n; j++ ) {
-			
-			int sj1 = (j<n) ? S[j+1] : -1;
-			int mm5 = S[i+1];
-			int mm3 = S[j-1];
+
 			bool evaluate = evaluate_restriction(i,j,p_table,last_j_array,in_pair_array,false);
 			// ------------------------------
 			// W: split case
@@ -1112,22 +1143,14 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 				pairedkj = (p_table[k] == j);
 				
 				bool can_pair = up_array[k-1] >= (k-i) ? true: false;
-				if(pairedkj){
-					wm_split = WM[k-1] + val_ml;
-					if(can_pair) wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + val_ml );
-					wm2_split = WM[k-1] + val_ml;
-					w_split = W[k-1] + val_w; 
-					km1 = k-1;
-					break;
-				}else{
-					wm_split = std::min( wm_split, WM[k-1] + val_ml );
-					if(can_pair) wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + val_ml );
-					wm2_split = std::min( wm2_split, WM[k-1] + val_ml );
-					w_split = std::min( w_split, W[k-1] + val_w );
-					if(wm2_split==WM[k-1] + val_ml) km1 = k-1;
-				}
+				
+				wm_split = std::min( wm_split, WM[k-1] + val_ml );
+				if(can_pair) wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + val_ml );
+				wm2_split = std::min( wm2_split, WM[k-1] + val_ml );
+				w_split = std::min( w_split, W[k-1] + val_w );
+				if(wm2_split==WM[k-1] + val_ml) km1 = k-1;
+				
 			}
-			// auto [w_split,wm_split,wm2_split] = split_cases(CL,WM,W,params,i,j,km1,pairedkj,p_table,up_array);
 			if(p_table[j]<0) w_split = std::min(w_split,W[j-1]);
 			if(p_table[j]<0) wm2_split = std::min( wm2_split, WM2[j-1] + params->MLbase );
 			if(p_table[j]<0) wm_split = std::min( wm_split, WM[j-1] + params->MLbase );
@@ -1170,35 +1193,31 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 				// j-i>=TURN+3
 				//
 				size_t max_k = std::min(j-TURN-2,i+MAXLOOP+1);
-				// #pragma omp parallel for 
-				for ( size_t k=i+1; k<=max_k; k++) {
-					size_t k_mod=k%(MAXLOOP+1);
-					
-					// for(int m = i+1; m<k;m++) if(p_table[m]>-1){canI = false;}
-					bool cank = up_array[k-1]>=(k-i-1) ? true : false;
-					size_t min_l=std::max(k+TURN+1 + MAXLOOP+2, k+j-i) - MAXLOOP-2;
-					for (size_t l=j-1; l>=min_l; --l) {
-						// if(p_table[k]>-1 && p_table[k] != l) canI=false;
-						assert(k-i+j-l-2<=MAXLOOP);
-						if(V(k_mod,l) == INF) continue;
+				// #pragma omp parallel for
+				if((p_table[i]<-1 && p_table[j] < -1) || p_table[i] == j) { 
+					for ( size_t k=i+1; k<=max_k; k++) {
+						size_t k_mod=k%(MAXLOOP+1);
 						
-						const energy_t v_iloop_kl = cank && up_array[j-1]>=(j-l-1) ? V(k_mod,l) + ILoopE(S,S1,params,ptype_closing,i,j,k,l): INF;
-						// const energy_t v_iloop_kl = cank && up_array[j-1]>=(j-l-1) ? V(k_mod,l) + E_IntLoop(k-i-1,j-l-1,ptype_closing,rtype[pair[S[k]][S[l]]],S1[i+1],S1[j-1],S1[k-1],S1[l+1],const_cast<paramT *>(params)) : INF;
-						if ( v_iloop_kl < v_iloop) {
-							v_iloop = v_iloop_kl;
-							best_l=l;
-							best_k=k;
-							best_e=V(k_mod,l);
+						bool cank = up_array[k-1]>=(k-i-1) ? true : false;
+						size_t min_l=std::max(k+TURN+1 + MAXLOOP+2, k+j-i) - MAXLOOP-2;
+						for (size_t l=j-1; l>=min_l; --l) {
+							assert(k-i+j-l-2<=MAXLOOP);
+							if(V(k_mod,l) == INF) continue;
+							
+							const energy_t v_iloop_kl = cank && up_array[j-1]>=(j-l-1) ? V(k_mod,l) + E_IntLoop(k-i-1,j-l-1,ptype_closing,rtype[pair[S[k]][S[l]]],S1[i+1],S1[j-1],S1[k-1],S1[l+1],const_cast<paramT *>(params)) : INF;
+							if ( v_iloop_kl < v_iloop) {
+								v_iloop = v_iloop_kl;
+								best_l=l;
+								best_k=k;
+								best_e=V(k_mod,l);
+							}
 						}
-						// if(p_table[l]>0) break;
 					}
-					// if(p_table[k]>0) break;
 				}
-				if( !((p_table[i]<-1 && p_table[j] < -1) || p_table[i] == j) ) v_iloop = INF;
+				
 				
 				const energy_t v_split = E_MbLoop(dmli1,dmli2,S,params,i,j,p_table);
 
-				// const energy_t v = std::min(v_h,std::min(v_iloop,v_split));
 				v = std::min(v_h,std::min(v_iloop,v_split));
 				// register required trace arrows from (i,j)
 				if ( v_iloop < std::min(v_h,v_split) ) {
@@ -1217,25 +1236,24 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 			} // end if (i,j form a canonical base pair)
 
 			
-
-			// size_t ip1_mod = (i+1)%(MAXLOOP+1);
-			// energy_t vi1j = V(ip1_mod,j);
-			// energy_t vij1 = V(i_mod,j-1);
-			// energy_t vi1j1 = V(ip1_mod,j-1);
-			energy_t vi1j = INF;
-			energy_t vij1 = INF;
-			energy_t vi1j1 = INF;
 			
+
+			size_t ip1_mod = (i+1)%(MAXLOOP+1);
+			energy_t vi1j = V(ip1_mod,j);
+			energy_t vij1 = V(i_mod,j-1);
+			energy_t vi1j1 = V(ip1_mod,j-1);	
 
 			// Checking the dangle positions for W
 			size_t k = i;
 			size_t l = j;
-			const energy_t w_v  = E_ext_Stem(v,vi1j,vij1,vi1j1,S,params,i,j,k,l,n,p_table);
+			 energy_t w_v  = E_ext_Stem(v,vi1j,vij1,vi1j1,S,params,i,j,k,l,n,p_table);
 			// Checking the dangle positions for W
 			k = i;
 			l = j;
 			const energy_t wm_v = E_MLStem(v,vi1j,vij1,vi1j1,WM,CL,S,params,i,j,k,l,n,p_table);
-		
+
+			// if(i==328 && j==362) printf("i is %lu and j is %lu and w is %d and w_split is %d and wm is %d and wm_split is %d\n",i,j,w_v,w_split,wm_v,wm_split);
+			// if(i==329 && j==361) printf("i is %lu and j is %lu and w is %d and w_split is %d and wm is %d and wm_split is %d\n",i,j,w_v,w_split,wm_v,wm_split);
 			if(params->model_details.dangles == 1){
 				if(i!=k || j!=l){
 					size_t k_mod = k%(MAXLOOP+1);;
@@ -1243,18 +1261,25 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 					else avoid_trace_arrow(ta_dangle);
 				}	
 			}
+
+			// if(i==329 && j==361) w_v = w_v-140;
+			// if(i==328 && j==362) w_v = w_v-140;
+			// bool pairedkl = p_table[k] == l;
+			
 			
 			// update w and wm by v
-			if(paired){
-				w = w_v;
-				wm = wm_v;
-			} else if(pairedkj){
-				w = w_split;
-				wm = wm_split;
-			} else{
+			// if(paired || pairedkl){
+			// 	w = w_v;
+			// 	wm = wm_v;
+			// } else if(pairedkj){
+			// 	w = w_split;
+			// 	wm = wm_split;
+			// } else{
 				w  = std::min(w_v, w_split);
 				wm = std::min(wm_v, wm_split);
-			}
+			// }
+
+
 			if ( w_v < w_split || wm_v < wm_split || paired) {
 				register_candidate(CL, i, j, v, wm_v, w_v);
 				
@@ -1267,11 +1292,12 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 			WM2[j]     = wm2_split;
 
 		} // end loop j
-		rotate_arrays(WM,WM2,dmli1,dmli2,n);
+		rotate_arrays(WM2,dmli1,dmli2);
 
 		// Clean up trace arrows in i+MAXLOOP+1
 		if (garbage_collect && i+MAXLOOP+1 <= n) {
-			gc_row(ta,i + MAXLOOP + 1 );
+			if(params->model_details.dangles ==1) gc_row(ta,ta_dangle,i + MAXLOOP + 1 );
+			else gc_row(ta,i + MAXLOOP + 1 );
 		}
 		// Reallocate candidate lists in i
 		for ( auto &x: CL ) {
@@ -1416,6 +1442,7 @@ main(int argc,char **argv) {
 	int p_table[n+1] = {0};
 	int up_array[n+1] = {0};
 	
+	// std::cout << E_IntLoop(29-28-1,160-159-1,pair[sparsemfefold.S_[28]][sparsemfefold.S_[160]],rtype[pair[sparsemfefold.S_[29]][sparsemfefold.S_[159]]],sparsemfefold.S1_[28+1],sparsemfefold.S1_[160-1],sparsemfefold.S1_[29-1],sparsemfefold.S1_[159+1],const_cast<paramT *>(sparsemfefold.params_)) << std::endl;
 
 	std::cout << seq << std::endl;
 	
@@ -1429,7 +1456,7 @@ main(int argc,char **argv) {
 		
 	}
 	
-	energy_t mfe = fold(sparsemfefold.seq_,sparsemfefold.V_,sparsemfefold.cand_comp,sparsemfefold.CL_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.params_,sparsemfefold.ta_, sparsemfefold.ta_dangle_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_, sparsemfefold.dmli1_, sparsemfefold.dmli2_,sparsemfefold.n_,sparsemfefold.garbage_collect_, p_table,last_j_array,in_pair_array,up_array);	
+	energy_t mfe = fold(sparsemfefold.seq_,sparsemfefold.V_,sparsemfefold.cand_comp,sparsemfefold.CL_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.params_,sparsemfefold.ta_, sparsemfefold.ta_dangle_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_, sparsemfefold.dmli1_, sparsemfefold.dmli2_,sparsemfefold.n_,sparsemfefold.garbage_collect_, p_table,last_j_array,in_pair_array,up_array);		
 	std::string structure = trace_back(sparsemfefold.seq_,sparsemfefold.CL_,sparsemfefold.cand_comp,sparsemfefold.structure_,sparsemfefold.params_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.ta_,sparsemfefold.ta_dangle_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_,sparsemfefold.n_,p_table,last_j_array,in_pair_array,up_array, mark_candidates);
 	
 	std::ostringstream smfe;
@@ -1440,6 +1467,7 @@ main(int argc,char **argv) {
 	// float factor=1024;
 	
 	// const std::string unit=" kB";
+	
 	
 	
 	if (verbose) {

@@ -67,39 +67,61 @@ void gc_trace_arrow(TraceArrows &t, size_t i, size_t j) {
     auto col = t.trace_arrow_[i].find(j);
 
     const auto &ta = col->second;
-
+    
+    
     if (ta.source_ref_count() == 0) {
-	// get trace arrow from the target if the arrow exists
-	if (exists_trace_arrow_from(t,ta.k(i,j),ta.l(i,j))) {
-	    auto &target_ta = trace_arrow_from(t,ta.k(i,j),ta.l(i,j));
-
-	    target_ta.dec_src();
-
-	    gc_trace_arrow(t,ta.k(i,j),ta.l(i,j));
-	}
-
-	t.trace_arrow_[i].erase(col);
-	t.ta_count_--;
-	t.ta_erase_++;
+        // get trace arrow from the target if the arrow exists
+        if (exists_trace_arrow_from(t,ta.k(i,j),ta.l(i,j))) {
+            auto &target_ta = trace_arrow_from(t,ta.k(i,j),ta.l(i,j));
+            target_ta.dec_src();
+            gc_trace_arrow(t,ta.k(i,j),ta.l(i,j));
+        }
+        
+        t.trace_arrow_[i].erase(col);
+        t.ta_count_--;
+        t.ta_erase_++;
     }
 }
-void gc_row(TraceArrows &t,TraceArrows &td, size_t i ) {
-    assert(i<=t.n_);
-    // i + TURN + 1
-    for (size_t j=i+4; j<=t.n_ ; j++) {
-        bool tiExistsj = t.trace_arrow_[i].exists(j);
-        bool tdiExistsj = td.trace_arrow_[i].exists(j);
-	    if (!tiExistsj && !tdiExistsj) continue;
-	    if(tiExistsj) gc_trace_arrow(t,i,j);
-        if(tdiExistsj) gc_trace_arrow(td,i,j);
+
+void gc_trace_arrow(TraceArrows &t, TraceArrows &td, size_t i, size_t j) {
+
+    assert( t.trace_arrow_[i].exists(j) );
+
+    auto col = t.trace_arrow_[i].find(j);
+
+    const auto &ta = col->second;
+    
+    
+    if (ta.source_ref_count() == 0) {
+        // get trace arrow from the target if the arrow exists
+        if(exists_trace_arrow_from(td,i-1,j) || exists_trace_arrow_from(td,i,j+1) || exists_trace_arrow_from(td,i-1,j+1)) return;
+        if (exists_trace_arrow_from(t,ta.k(i,j),ta.l(i,j))) {
+            auto &target_ta = trace_arrow_from(t,ta.k(i,j),ta.l(i,j));
+            target_ta.dec_src();
+            gc_trace_arrow(t,td,ta.k(i,j),ta.l(i,j));
+        }
+        
+        t.trace_arrow_[i].erase(col);
+        t.ta_count_--;
+        t.ta_erase_++;
     }
 }
+
 void gc_row(TraceArrows &t, size_t i ) {
     assert(i<=t.n_);
     // i + TURN + 1
     for (size_t j=i+4; j<=t.n_ ; j++) {
 	    if (! t.trace_arrow_[i].exists(j)) continue;
 	    gc_trace_arrow(t,i,j);
+    }
+}
+
+void gc_row(TraceArrows &t, TraceArrows &td, size_t i ) {
+    assert(i<=t.n_);
+    // i + TURN + 1
+    for (size_t j=i+4; j<=t.n_ ; j++) {
+	    if (! t.trace_arrow_[i].exists(j)) continue;
+	    gc_trace_arrow(t,td,i,j);
     }
 }
 

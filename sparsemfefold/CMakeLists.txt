@@ -11,7 +11,8 @@ set(sparsemfefold_SOURCE
     src/cmdline.cc
     # src/trace_arrow.cc 
     # src/SparseMFEFold.cc
-    src/SparseMFEFold_1.cc
+    # src/SparseMFEFold_1.cc
+    src/SparseMFEFold_2.cc
     src/trace_arrow1.cc 
 )
 

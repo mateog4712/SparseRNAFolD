@@ -502,10 +502,9 @@ energy_t E_MLStem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const& 
 				en += E_MLstem(type, -1, -1, params);
 
 			e = MIN2(e, en);
-			d = 0;
 		}
 	}
-	if(params->model_details.dangles == 1){
+	if(params->model_details.dangles == 1 && p_table[i] != j and p_table[j] != i){
 		int mm5 = S[i], mm3 = S[j];
 
 		if (((p_table[i+1] < -1 && p_table[j] < -1) || (p_table[i+1] == j)) && p_table[i] < 0) {
@@ -707,8 +706,8 @@ void find_mb_dangle(const energy_t &vkj,const energy_t &vk1j,const energy_t &vkj
 	int tt = pair[S[j]][S[i]];
 	energy_t e1 = vkj +  E_MLstem(tt, -1, -1, params);
 	energy_t e2 = vk1j +  E_MLstem(tt, -1, S[i+1], params);
-	energy_t e3 = vk1j +  E_MLstem(tt, S[j-1], -1, params);
-	energy_t e4 = vk1j +  E_MLstem(tt, S[j-1], S[i+1], params);
+	energy_t e3 = vkj1 +  E_MLstem(tt, S[j-1], -1, params);
+	energy_t e4 = vk1j1 +  E_MLstem(tt, S[j-1], S[i+1], params);
 	energy_t e = e1;
 	if(e2<e && p_table[i+1]< 0){
 		e = e2;
@@ -751,7 +750,7 @@ void find_mb_dangle(const energy_t &vkj,const energy_t &vk1j,const energy_t &vkj
  * pre: W contains values of row i in interval i..j
  */
 void trace_W(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S,auto const& S1, auto &ta, auto const& W, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates, size_t i, size_t j,int32_t* p_table, int32_t* up_array) {
-	
+	// printf("W at %lu and %lu with %d\n",i,j,W[j]);
 	if (i+TURN+1>=j) return;
 	// case j unpaired
 	if (W[j] == W[j-1]) {
@@ -778,6 +777,10 @@ void trace_W(auto const& seq, auto const& CL, auto const& cand_comp, auto &struc
 	size_t l=j;
 	int ptype = 0;
     switch(dangle){
+		case 0:
+			ptype = pair[S[k]][S[l]];
+			v = vk - E_ExtLoop(ptype,-1,-1,params);
+			break;
         case 1:
 			
             k=m+1;
@@ -793,7 +796,7 @@ void trace_W(auto const& seq, auto const& CL, auto const& cand_comp, auto &struc
             if(params->model_details.dangles == 1){
                 k=m+1;
                 l=j-1;
-				ptype = pair[S[k]][S[k]];
+				ptype = pair[S[k]][S[l]];
 				v = vk - E_ExtLoop(ptype,S[m],S[j],params);
             }
             break;
@@ -831,7 +834,8 @@ void trace_W(auto const& seq, auto const& CL, auto const& cand_comp, auto &struc
 * pre: structure is string of size (n+1)
 */
 void trace_V(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S,auto const& S1, auto &ta, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates, size_t i, size_t j, energy_t e,int32_t* p_table,int32_t* up_array) {
-	// std::cout << "V at " << i << " and " << j << " with " << e << std::endl;
+	// printf("V at %lu and %lu with %d and %c and %c\n",i,j,e,seq[i-1],seq[j-1]);
+	
 
 	assert( i+TURN+1<=j );
 	assert( j<=n );
@@ -861,18 +865,21 @@ void trace_V(auto const& seq, auto const& CL, auto const& cand_comp, auto &struc
 
 		// assert(ptype_closing>0);
 		// try to trace back to a candidate: (still) interior loop case
-		for ( size_t l=i; l<j; l++) {
+		int l_min = std::max((int)i,(int) j-31);
+		for ( size_t l=j-1; l>l_min; l--) {
 			// Break if it's an assured dangle case
 			for ( auto it=CL[l].begin(); CL[l].end()!=it && it->first>i; ++it ) {
 				const size_t k=it->first;
-				if (  e == it->second + ILoopE(S,S1,params,ptype_closing,i,j,k,l) ) {
-				// if (  e == it->second + E_IntLoop(k-i-1,j-l-1,ptype_closing,rtype[pair[S[k]][S[l]]],S1[i+1],S1[j-1],S1[k-1],S1[l+1],const_cast<paramT *>(params)) ) {
+				if(k-i > 31) continue;
+				// if (  e == it->second + ILoopE(S,S1,params,ptype_closing,i,j,k,l) ) {
+				if (  e == it->second + E_IntLoop(k-i-1,j-l-1,ptype_closing,rtype[pair[S[k]][S[l]]],S1[i+1],S1[j-1],S1[k-1],S1[l+1],const_cast<paramT *>(params)) ) {
 					trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,k,l,it->second,p_table,up_array);
 					return;
 				}
 			}
 		}
 	}
+	// std::cout << "here" << std::endl;
 	// is this a hairpin?
 	if ( e == HairpinE(seq,S,S1,params,i,j) ) {
 		return;
@@ -927,7 +934,7 @@ void trace_V(auto const& seq, auto const& CL, auto const& cand_comp, auto &struc
 * pre: vector WM is recomputed for row i
 */
 void trace_WM(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S, auto const& S1, auto &ta, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates,size_t i, size_t j, energy_t e, int32_t* p_table, int32_t* up_array) {
-	// std::cout << "WM at " << i << " and " << j << " with " << e << std::endl;
+	// printf("WM at %lu and %lu with %d\n",i,j,e);
 
 	if (i+TURN+1>j) {return;}
 
@@ -959,6 +966,10 @@ void trace_WM(auto const& seq, auto const& CL, auto const& cand_comp, auto &stru
 	size_t l = j;
 	int ptype = 0;
     switch(dangle){
+		case 0:
+			ptype= pair[S[k]][S[l]];
+			v = vk - E_MLstem(ptype,-1,-1,params);
+			break;
         case 1:
             k=m+1;
 			ptype= pair[S[k]][S[l]];
@@ -1015,7 +1026,7 @@ void trace_WM(auto const& seq, auto const& CL, auto const& cand_comp, auto &stru
 * pre: vectors WM and WM2 are recomputed for row i
  */
 void trace_WM2(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S, auto const& S1, auto &ta, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates,size_t i, size_t j,int32_t* p_table, int32_t* up_array) {
-	// std::cout << "WM2 at " << i << " and " << j << " with " << WM2[j] << std::endl;
+	// printf("WM2 at %lu and %lu with %d\n",i,j,WM2[j]);
 
 	if (i+2*TURN+3>j) {return;}
 
@@ -1035,6 +1046,7 @@ void trace_WM2(auto const& seq, auto const& CL, auto const& cand_comp, auto &str
     int dangle = 4;
 	for ( auto it=CL[j].begin();CL[j].end() != it  && it->first>=i+TURN+1;++it ) {
 		m = it->first;
+		
 		auto const [v_kj,d] = decode(it->third);
 		if (e == WM[m-1] + v_kj) {
 			vk = v_kj;
@@ -1047,6 +1059,10 @@ void trace_WM2(auto const& seq, auto const& CL, auto const& cand_comp, auto &str
 	size_t l = j;
 	int ptype = 0;
     switch(dangle){
+		case 0:
+			ptype= pair[S[k]][S[l]];
+			v = vk - E_MLstem(ptype,-1,-1,params);
+			break;
         case 1:
             k=m+1;
 			ptype= pair[S[k]][S[l]];
@@ -1234,19 +1250,21 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 						size_t min_l=std::max(k+TURN+1 + MAXLOOP+2, k+j-i) - MAXLOOP-2;
 						for (size_t l=j-1; l>=min_l; --l) {
 							assert(k-i+j-l-2<=MAXLOOP);
-							if(V(k_mod,l) == INF) continue;
+							if(V(k_mod,l) == INF || ((p_table[k] > -1 || p_table[l] > -1) && p_table[k] != l )) continue;
 							
 							const energy_t v_iloop_kl = cank && up_array[j-1]>=(j-l-1) ? V(k_mod,l) + E_IntLoop(k-i-1,j-l-1,ptype_closing,rtype[pair[S[k]][S[l]]],S1[i+1],S1[j-1],S1[k-1],S1[l+1],const_cast<paramT *>(params)) : INF;
+							// if(i==235 && j == 296) printf("k is %lu and l is %lu and viloop is %d\n",k,l,v_iloop_kl);
 							if ( v_iloop_kl < v_iloop) {
 								v_iloop = v_iloop_kl;
 								best_l=l;
 								best_k=k;
 								best_e=V(k_mod,l);
 							}
+							if(p_table[l] > -1) break;
 						}
+						if(p_table[k] > -1) break;
 					}
 				}
-				
 				
 				const energy_t v_split = E_MbLoop(dmli1,dmli2,S,params,i,j,p_table);
 
@@ -1262,11 +1280,12 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 						register_trace_arrow(ta,i,j,best_k,best_l,best_e);
 					}
 				}
-
 				V(i_mod,j) = v;
 			} else {
 				V(i_mod,j) = INF;
 			} // end if (i,j form a canonical base pair)
+			
+
 
 			
 			
@@ -1301,6 +1320,9 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
                 }
 			}
 			
+		
+
+
 			
 			w  = std::min(w_v, w_split);
 			wm = std::min(wm_v, wm_split);
@@ -1476,6 +1498,7 @@ main(int argc,char **argv) {
 		++temp;
 		
 	}
+	std::cout<< p_table[4] << std::endl;
 	
 	energy_t mfe = fold(sparsemfefold.seq_,sparsemfefold.V_,sparsemfefold.cand_comp,sparsemfefold.CL_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.params_,sparsemfefold.ta_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_, sparsemfefold.dmli1_, sparsemfefold.dmli2_,sparsemfefold.n_,sparsemfefold.garbage_collect_, p_table,last_j_array,in_pair_array,up_array);		
 	// std::cout << mfe << std::endl;
@@ -1484,7 +1507,7 @@ main(int argc,char **argv) {
 	std::ostringstream smfe;
 	smfe << std::setiosflags(std::ios::fixed) << std::setprecision(2) << mfe/100.0 ;
 
-	// std::cout << structure << " ("<<smfe.str()<<")"<<std::endl;
+	std::cout << structure << " ("<<smfe.str()<<")"<<std::endl;
 
 	// float factor=1024;
 	

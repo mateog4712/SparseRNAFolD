@@ -1,2 +1,1 @@
-GUCGGGCGGACGGUGCUGUCGCCAACCCGGUCAGGUCCGGAAGGAAGCAGCCGUAACGAAUUUUUAUCGGGUCGUUCCGGC
-...(..((.((((((...)..(......)......(((....)))....)))))..))........).(((....))...) (12.10)
+0.00	4792

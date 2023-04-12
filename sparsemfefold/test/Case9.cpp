@@ -17,6 +17,7 @@
 //#define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
+// Make random input structures for all of the sequences given in the file
 using namespace std;
 
 string make_structure(string seq);
@@ -68,74 +69,15 @@ int main(int argc,char **argv) {
     double score = 0;
     int size = seqs.size();
     // exit(0);
-    string filename = "/home/mgray7/output2/results/" + family +".txt";
+    string filename = "/home/mgray7/output2/structures/" + family +".txt";
     ofstream out3(filename);
     std::vector<int> wrong;
     for(int i =0;i<size;++i){
-        cout << i << endl;
         string intermediary = make_structure(seqs[i]);
-        cout << seqs[i] << endl;
-        cout << intermediary << endl;
         
-        string commands = command + " -r \"" + intermediary + "\" " + seqs[i] +  " > out.txt";
-        // std::cout << commands << std::endl;
-        system(commands.c_str());
-
-        ifstream in1("out.txt");
-        getline(in1,str);
-        getline(in1,str);
-        in1.close();
-        // exit(0);
-        string structure = str.substr(0,seqs[i].length());
-        
-
-        double energy = stod(str.substr(seqs[i].length()+2,str.length()-seqs[i].length()-1));
-        // exit(0);
-        ofstream out1("/home/mgray7/RNAfold/in.txt");
-        out1 << names[i] << endl;
-        out1 << seqs[i] << endl;
-        out1 << intermediary << endl;
-        out1.close();
-        string infile = "/home/mgray7/RNAfold/in.txt";
-    
-        string commands2 = command2 + " --enforceConstraint --constraint<" + infile + " > /home/mgray7/RNAfold/out.txt";
-        system(commands2.c_str());
-
-        ifstream in2("/home/mgray7/RNAfold/out.txt");
-        getline(in2,str);
-        getline(in2,str);
-        getline(in2,str);
-        in2.close();
-        // exit(0);
-        // exit(0);
-        // cout << str.length() << " " << seqs[i].length()+2 << " " << str.length()-seqs[i].length()-1;
-        string structure2 = str.substr(0,seqs[i].length());
-        // exit(0);
-        
-        double energy2 = stod(str.substr(seqs[i].length()+2,str.length()-seqs[i].length()-1));
-        // exit(0);
         out3 << names[i] << endl;
-        out3 << seqs[i] << endl;
         out3 << intermediary << endl;
-        out3 << structure << endl;
-        out3 << structure2 << endl;
-        // for(int k=0;k<structure.length();++k){
-        //     if(structure[k] == '[') structure[k] = '(';
-        //     if(structure[k] == ')') structure[k] = ')';
-        // }
-        // exit(0);
-        
-        out3 << energy << "\t" << energy2 << "\t" << structure.compare(structure2) << endl;
-
-        out3 << endl;
-        if (energy==energy2) score++;
-        else wrong.push_back(i);
-        // structure.compare(structure2) == 0
     
-    }
-    out3 << score << " out of " << size << endl;
-    for(int i =0; i<wrong.size();++i){
-        std::cout << wrong[i] << std::endl;
     }
     out3.close();
     return 0;

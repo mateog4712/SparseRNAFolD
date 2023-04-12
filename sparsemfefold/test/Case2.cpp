@@ -40,6 +40,8 @@ int size = seqs.size();
 string filename = "/home/mgray7/output2/results/" + family +".txt";
 ofstream out3(filename);
 for(int i =0;i<size;++i){
+    std::cout << i << std::endl;
+    std::cout << seqs[i] << std::endl;
     string commands = command + seqs[i] +  " > out.txt";
     system(commands.c_str());
 

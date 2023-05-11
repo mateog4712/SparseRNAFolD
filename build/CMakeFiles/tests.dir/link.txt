@@ -1,0 +1,1 @@
+/usr/bin/g++    -fconcepts  -O3   CMakeFiles/tests.dir/test/Case7.cpp.o CMakeFiles/tests.dir/test/Test.cpp.o  -o tests  libRNA.a 

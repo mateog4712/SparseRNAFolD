@@ -1,0 +1,12 @@
+prefix=/usr/local
+exec_prefix=/usr/local
+libdir=${exec_prefix}/
+includedir=${prefix}/
+
+Name: SparseMFEFold
+Description: 
+Version: 
+
+Requires:
+Libs: -L${libdir} -lmylib
+Cflags: -I${includedir}

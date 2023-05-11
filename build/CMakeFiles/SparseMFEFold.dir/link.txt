@@ -1,0 +1,1 @@
+/usr/bin/g++    -fconcepts  -O3   CMakeFiles/SparseMFEFold.dir/src/cmdline.cc.o CMakeFiles/SparseMFEFold.dir/src/SparseMFEFold_2.cc.o CMakeFiles/SparseMFEFold.dir/src/trace_arrow1.cc.o  -o SparseMFEFold  libRNA.a 

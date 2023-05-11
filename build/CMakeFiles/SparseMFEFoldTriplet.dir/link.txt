@@ -1,1 +1,0 @@
-/usr/bin/g++    -fconcepts  -O3   CMakeFiles/SparseMFEFoldTriplet.dir/src/cmdline.cc.o CMakeFiles/SparseMFEFoldTriplet.dir/src/SparseMFEFold_3.cc.o CMakeFiles/SparseMFEFoldTriplet.dir/src/trace_arrow1.cc.o  -o SparseMFEFoldTriplet  libRNA.a 

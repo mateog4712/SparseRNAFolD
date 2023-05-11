@@ -61,7 +61,7 @@ Read input file from cmdline; predict minimum free energy and optimum structure 
     ./build/src/SparseRNAFolD GGGGAAAACCCC
     ./build/src/SparseRNAFolD GGGGAAAACCCC -r "((........))" -d1
 
-
+```
 ./build/src/SparseRNAFolD -m -v UAACUUAGGGGUUAAAGUUGCAGAUUGUGGCUCUGAAAACACGGGUUCGAA
 
 UAACUUAGGGGUUAAAGUUGCAGAUUGUGGCUCUGAAAACACGGGUUCGAA
@@ -76,7 +76,7 @@ Can num:109
 Can cap:118
 TAs num:165
 TAs cap:169
-
+```
     
 ## Results
 Results can be found at https://github.com/mateog4712/SparseRNAFolD-RawData

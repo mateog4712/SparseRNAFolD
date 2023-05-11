@@ -178,10 +178,10 @@ void runPerl(string program) {
 
 int main(int argc,char **argv) {
     
-    string program = "sparse";
+    string program = "linear";
     // runPerl(program);
 
-    // runFmeasure(program);
+    runFmeasure(program);
     getResults(program);
 
 

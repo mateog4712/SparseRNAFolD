@@ -9,3 +9,5 @@ config
 src/Makefile.in
 autom4te.cache
 Doc
+bash.sh
+bashStructure.sh

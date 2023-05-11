@@ -11,13 +11,13 @@ set(sparsemfefold_SOURCE
     src/cmdline.cc
     # src/trace_arrow.cc 
     # src/SparseMFEFold.cc
-    src/SparseMFEFold_3.cc
-    # src/SparseMFEFold_2.cc
+    # src/SparseMFEFold_3.cc
+    src/SparseMFEFold_2.cc
     src/trace_arrow1.cc 
 )
 
 set(test_SOURCE
-test/Case10.cpp 
+test/Case7.cpp 
 test/Test.cpp
 )
 
@@ -91,11 +91,11 @@ configure_file(RNA.pc.in RNA.pc @ONLY)
 
 target_include_directories(RNA PRIVATE .)
 
-add_executable(SparseMFEFoldTriplet ${sparsemfefold_SOURCE})
+add_executable(SparseMFEFold ${sparsemfefold_SOURCE})
 
 add_executable(tests ${test_SOURCE})
 
-target_link_libraries(SparseMFEFoldTriplet PRIVATE RNA)
+target_link_libraries(SparseMFEFold PRIVATE RNA)
 
 target_link_libraries(tests PRIVATE RNA)
 

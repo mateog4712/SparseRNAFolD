@@ -1198,6 +1198,7 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 				if(can_pair) wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + v_kj );
 				wm2_split = std::min( wm2_split, WM[k-1] + v_kj );
 				w_split = std::min( w_split, W[k-1] + v_kjw );
+				// if(i==20 && j ==31) printf("k is %lu and j is %lu and wm_split is %d\n",k,j,wm_split);
 		
 				
 			}
@@ -1293,7 +1294,8 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
  			size_t ip1_mod = (i+1)%(MAXLOOP+1);
 			energy_t vi1j = V(ip1_mod,j);
 			energy_t vij1 = V(i_mod,j-1);
-			energy_t vi1j1 = V(ip1_mod,j-1);	
+			energy_t vi1j1 = V(ip1_mod,j-1);
+				
 
 			// Checking the dangle positions for W
 			if(params->model_details.dangles == 1) d =0;
@@ -1302,6 +1304,12 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 			const energy_t wm_v = E_MLStem(v,vi1j,vij1,vi1j1,WM,CL,S,params,i,j,d,n,p_table);
 			int k = i;
             int l = j;
+			// if(i==21 && j==31) printf("i is %lu and j is %lu and wm_v is %d and d is %d and wm_split is %d\n",i,j,wm_v,d,wm_split);
+			// if(i==20 && j==32) printf("i is %lu and j is %lu and wm_v is %d and d is %d and wm_split is %d\n",i,j,wm_v,d,wm_split);
+			// if(i==20 && j==32) printf("i is %lu and j is %lu and v is %d and wm_split is %d\n",i,j,v,wm_split);
+			// if(i==20 && j==33) printf("i is %lu and j is %lu and wm_v is %d and d is %d and wm_split is %d\n",i,j,wm_v,d,wm_split);
+			// if(i==19 && j==32) printf("i is %lu and j is %lu and wm_v is %d and d is %d and wm_split is %d\n",i,j,wm_v,d,wm_split);
+			// if(i==19 && j==33) printf("i is %lu and j is %lu and v is %d and wm_v is %d and d is %d wm_split is %d\n",i,j,v,wm_v,d,wm_split);
 			if(params->model_details.dangles == 1){
                 if(d>0){
                     switch(d){
@@ -1323,7 +1331,11 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 		
 
 
-			
+			// if(i==5 && j == 15) printf("i is %lu and j is %lu and v is %d and vd is %d and d is %d\n",i,j,v,w_v,w_split);
+			// if(i==3 && j == 17) printf("i is %lu and j is %lu and v is %d and vd is %d and d is %d\n",i,j,v,w_v,d);
+			// if(i==2 && j == 18) printf("i is %lu and j is %lu and v is %d and vd is %d and d is %d\n",i,j,v,w_v,d);
+			// if(i==1 && j == 19) printf("i is %lu and j is %lu and v is %d and vd is %d and d is %d\n",i,j,v,w_v,d);
+			// if(i==7 && j == 12) printf("i is %lu and j is %lu and v is %d\n",i,j,v);
 			w  = std::min(w_v, w_split);
 			wm = std::min(wm_v, wm_split);
 			if ( w_v < w_split || wm_v < wm_split || paired) {
@@ -1498,7 +1510,7 @@ main(int argc,char **argv) {
 		++temp;
 		
 	}
-	std::cout<< p_table[4] << std::endl;
+	
 	
 	energy_t mfe = fold(sparsemfefold.seq_,sparsemfefold.V_,sparsemfefold.cand_comp,sparsemfefold.CL_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.params_,sparsemfefold.ta_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_, sparsemfefold.dmli1_, sparsemfefold.dmli2_,sparsemfefold.n_,sparsemfefold.garbage_collect_, p_table,last_j_array,in_pair_array,up_array);		
 	// std::cout << mfe << std::endl;

@@ -8,10 +8,12 @@ if (( $i%2==1 ))
 
 then
 # echo $line
-# echo $line > /home/mgray7/sparsemfe/sparsemfefold/out1.txt
-/usr/bin/time -o out.txt -f "%e\t%M" ./build/SparseMFEFoldTriplet -d1 $line;
-# /usr/bin/time -o out.txt -f "%e\t%M" ../../LinearFold/linearfold -V -d 2 < /home/mgray7/sparsemfe/sparsemfefold/out1.txt
-cat "/home/mgray7/sparsemfe/sparsemfefold/out.txt" >> "/home/mgray7/output2/results/$input.txt"
+echo $line > /home/mgray7/SparseRNAFolD/sparsemfefold/out1.txt
+# /usr/bin/time -o out.txt -f "%e\t%M" ./build/SparseMFEFold -d2 $line;
+/usr/bin/time -o out.txt -f "%e\t%M" /home/mgray7/includes/vienna/bin/RNAfold -d2 /home/mgray7/SparseRNAFolD/sparsemfefold/out1.txt;
+# /usr/bin/time -o out.txt -f "%e\t%M" /home/mgray7/includes/sparsemfe/bin/SparseMFEFold $line;
+# /usr/bin/time -o out.txt -f "%e\t%M" ../../LinearFold/linearfold -V -d 2 < /home/mgray7/SparseRNAFolD/sparsemfefold/out1.txt
+cat "/home/mgray7/SparseRNAFolD/sparsemfefold/out.txt" >> "/home/mgray7/output2/results/$input.txt"
 fi
 #   
 i=$((i+1));

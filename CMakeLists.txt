@@ -1,4 +1,4 @@
-project(SparseMFEFold)
+project(SparseRNAFolD)
 
 cmake_minimum_required(VERSION 3.8)
 set(CMAKE_CXX_STANDARD 17)
@@ -7,10 +7,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \ -fconcepts \ -O3")
 
-set(sparsemfefold_SOURCE
+set(sparseRNAfolD_SOURCE
     src/cmdline.cc
-    src/SparseMFEFold_2.cc
-    src/trace_arrow1.cc 
+    src/SparseRNAFolD.cc
+    src/trace_arrow.cc 
 )
 
 set(test_SOURCE
@@ -84,15 +84,15 @@ set(vienna_SOURCE
 )
 
 add_library(RNA STATIC ${vienna_SOURCE})
-configure_file(RNA.pc.in RNA.pc @ONLY)
+# configure_file(RNA.pc.in RNA.pc @ONLY)
 
 target_include_directories(RNA PRIVATE .)
 
-add_executable(SparseMFEFold ${sparsemfefold_SOURCE})
+add_executable(SparseRNAFolD ${sparseRNAfolD_SOURCE})
 
 add_executable(tests ${test_SOURCE})
 
-target_link_libraries(SparseMFEFold PRIVATE RNA)
+target_link_libraries(SparseRNAFolD PRIVATE RNA)
 
 target_link_libraries(tests PRIVATE RNA)
 

@@ -1,7 +1,7 @@
 #ifndef TRACE_ARROW_HH
 #define TRACE_ARROW_HH
 
-#include "base.hh"
+#include "base_types.hh"
 #include "simple_map.hh"
 #include <cassert>
 

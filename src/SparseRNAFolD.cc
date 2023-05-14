@@ -61,19 +61,13 @@ V(i,j) + b  < min {
 
 #include <iostream>
 #include <iomanip>
-
-#include <matrix.hh>
-
-#include <limits>
-
 #include <vector>
 #include <iterator>
-
 #include <cstring>
 #include <string>
 #include <cassert>
-#include <numeric>
 
+#include <matrix.hh>
 #include "base_types.hh"
 #include "trace_arrows.hh"
 
@@ -85,8 +79,7 @@ extern "C" {
 
 #include "cmdline.hh"
 
-#include <fstream>
-
+// New Candidate structure
 struct quatret
 {
     cand_pos_t first; 
@@ -128,140 +121,129 @@ bool evaluate_restriction(int i, int j, int32_t *last_j_array, int32_t *in_pair_
 * programming recursions and the trace-back.
 */
 class SparseMFEFold {
+	public:
+		std::string seq_;
+		cand_pos_t n_;
 
-public:
-	std::string seq_;
-	cand_pos_t n_;
+		short *S_;
+		short *S1_;
 
-	short *S_;
-	short *S1_;
+		paramT *params_;
 
-	paramT *params_;
+		std::string structure_;
+		std::string restricted_;
+		
 
-	std::string structure_;
-	std::string restricted_;
-	
+		bool garbage_collect_;
 
-	bool garbage_collect_;
+		LocARNA::Matrix<energy_t> V_; // store V[i..i+MAXLOOP-1][1..n]
+		std::vector<energy_t> W_;
+		std::vector<energy_t> WM_;
+		std::vector<energy_t> WM2_;
 
-	LocARNA::Matrix<energy_t> V_; // store V[i..i+MAXLOOP-1][1..n]
-	std::vector<energy_t> W_;
-	std::vector<energy_t> WM_;
-	std::vector<energy_t> WM2_;
+		std::vector<energy_t> dmli1_; // WM2 from 1 iteration ago
+		std::vector<energy_t> dmli2_; // WM2 from 2 iterations ago
 
-	std::vector<energy_t> dmli1_; // WM2 from 1 iteration ago
-	std::vector<energy_t> dmli2_; // WM2 from 2 iterations ago
-
-	bool mark_candidates_;
-
-
-	TraceArrows ta_;
-
-	// TraceArrows ta_dangle_;
-	
-	std::vector< cand_list_t > CL_;
-
-	
-	
-
-	/**
-	candidate list for decomposition in W or WM
-
-	@note Avoid separate candidate lists CLW and CLWM for split cases in W and
-	WM to save even more space; here, this works after
-	reformulating the recursions such that both split-cases recurse to
-	V-entries. (compare OCTs)
-	*/
-	
-
-	// compare candidate list entries by keys (left index i) in descending order
-	struct {
-	bool operator ()(const cand_entry_t &x, size_t y) const {
-		return x.first > y;
-	}
-	}
-	cand_comp;
-
-	
+		bool mark_candidates_;
 
 
-	SparseMFEFold(const std::string &seq, bool garbage_collect, std::string restricted)
-	: seq_(seq),
-	n_(seq.length()),
-	params_(scale_parameters()),
-	ta_(n_),
-	// ta_dangle_(n_),
-		garbage_collect_(garbage_collect)
-	{
-	make_pair_matrix();
+		TraceArrows ta_;		
+		std::vector< cand_list_t > CL_;	
 
-	S_ = encode_sequence(seq.c_str(),0);
-	S1_ = encode_sequence(seq.c_str(),1);
+		// compare candidate list entries by keys (left index i) in descending order
+		struct {
+		bool operator ()(const cand_entry_t &x, size_t y) const {
+			return x.first > y;
+		}
+		} cand_comp;
 
-	V_.resize(MAXLOOP+1,n_+1);
-	W_.resize(n_+1,0);
+		SparseMFEFold(const std::string &seq, bool garbage_collect, std::string restricted)
+		: seq_(seq),n_(seq.length()),params_(scale_parameters()),ta_(n_),garbage_collect_(garbage_collect){
+		
+		make_pair_matrix();
 
-	WM_.resize(n_+1,INF);
+		S_ = encode_sequence(seq.c_str(),0);
+		S1_ = encode_sequence(seq.c_str(),1);
 
-	WM2_.resize(n_+1,INF);
+		V_.resize(MAXLOOP+1,n_+1);
+		W_.resize(n_+1,0);
 
-	dmli1_.resize(n_+1,INF);
+		WM_.resize(n_+1,INF);
 
-	dmli2_.resize(n_+1,INF);
+		WM2_.resize(n_+1,INF);
 
-	// init candidate lists
-	CL_.resize(n_+1);
+		dmli1_.resize(n_+1,INF);
 
-	resize(ta_,n_+1);
+		dmli2_.resize(n_+1,INF);
 
-	// resize(ta_dangle_,n_+1);
+		// init candidate lists
+		CL_.resize(n_+1);
 
-	restricted_ = restricted;
-	
-	}
+		resize(ta_,n_+1);
 
-	
+		restricted_ = restricted;
+		
+		}
 
-	~SparseMFEFold() {
-	free(params_);
-	free(S_);
-	free(S1_);
-	}
+		
+
+		~SparseMFEFold() {
+		free(params_);
+		free(S_);
+		free(S1_);
+		}
 };
 
 
-// ! TRANSLATED: -----------------------------------------------------------------------------------
-
+/**
+ * @brief This code returns the hairpin energy for a given base pair.
+ * @param i The left index in the base pair
+ * @param j The right index in the base pair
+*/
 energy_t HairpinE(auto const& seq, auto const& S, auto const& S1, auto const& params, cand_pos_t i, cand_pos_t j) {
-
-	assert(1<=i);
-	assert(i<j);
 	
-	//assert(j<=len); // don't know len here
-
-	const int_least8_t ptype_closing = pair[S[i]][S[j]];
+	const pair_type ptype_closing = pair[S[i]][S[j]];
 
 	if (ptype_closing==0) return INF;
 
 	return E_Hairpin(j-i-1,ptype_closing,S1[i+1],S1[j-1],&seq.c_str()[i-1], const_cast<paramT *>(params));
 }
 
-energy_t encode(energy_t v, Dangle d){
-    return (v << 2) | d;
+/**
+ * @brief Encodes the dangle type into the energy by shifting the energy two bits to the left and putting the dangle.
+ * Dangles has 4 possible values: 00, 01, 10, 11, for no dangle, 5' dangle, 3' dangle, and 53' dangle, respectively.
+ * 
+ * @param e The energy being shifted. In practice, W(i,j) or WM(i,j)
+ * @param d The type of dangle.
+*/
+energy_t encode(energy_t e, Dangle d){
+    return (e << 2) | d;
+}
+/**
+ * @brief The complement to encode. This returns the energy and dangle, respectively, in a tuple format
+ * 
+ * @param enc The encoded energy 
+*/
+std::pair<energy_t,Dangle> decode(energy_t enc){
+    return std::make_pair((enc >> 2), (enc & 3));
 }
 
-std::pair<energy_t,Dangle> decode(energy_t v){
-    return std::make_pair((v >> 2), (v & 3));
-}
-
-
-energy_t E_ext_Stem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const& vk1j1,auto const& S, auto const& params, const cand_pos_t i,const cand_pos_t j, Dangle &d, cand_pos_t n, auto const& p_table){
+/**
+ * @brief Gives the W(i,j) energy. The type of dangle model being used affects this energy. 
+ * The type of dangle is also changed to reflect this.
+ * 
+ * @param vij The V(i,j) energy
+ * @param vi1j The V(i+1,j) energy
+ * @param vij1 The V(i,j-1) energy
+ * @param vi1j1 The V(i+1,j-1) energy
+*/
+energy_t E_ext_Stem(auto const& vij,auto const& vi1j,auto const& vij1,auto const& vi1j1,auto const& S, auto const& params, const cand_pos_t i,const cand_pos_t j, Dangle &d, cand_pos_t n, auto const& p_table){
 
 	energy_t e = INF,en = INF;
   	pair_type tt  = pair[S[i]][S[j]];
 
     if ((p_table[i] <-1 && p_table[j] <-1) || (p_table[i] == j && p_table[j] == i)) {
-				en = vkj; // i j
+				en = vij; // i j
 
                 base_type si1 = i>1 ? S[i-1] : -1;
                 base_type sj1 = j<n ? S[j+1] : -1;
@@ -280,7 +262,7 @@ energy_t E_ext_Stem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const
 	if(params->model_details.dangles  == 1){
         tt  = pair[S[i+1]][S[j]];
         if (((p_table[i+1] <-1 && p_table[j] <-1) || (p_table[i+1] == j)) && p_table[i]<0) {
-            en = (j-i-1>TURN) ? vk1j : INF; //i+1 j
+            en = (j-i-1>TURN) ? vi1j : INF; //i+1 j
 
             if (en != INF) {
 
@@ -296,7 +278,7 @@ energy_t E_ext_Stem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const
         }
         tt  = pair[S[i]][S[j-1]];
         if (((p_table[i] <-1 && p_table[j-1] <-1) || (p_table[i] == j-1)) && p_table[j]<0) {
-            en = (j-1-i>TURN) ? vkj1 : INF; // i j-1
+            en = (j-1-i>TURN) ? vij1 : INF; // i j-1
             if (en != INF) {
 
                 base_type sj1 = S[j];
@@ -311,7 +293,7 @@ energy_t E_ext_Stem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const
         }
         tt  = pair[S[i+1]][S[j-1]];
         if (((p_table[i+1] <-1 && p_table[j-1] <-1) || (p_table[i+1] == j-1)) && p_table[i] < 0 && p_table[j]<0) {
-            en = (j-1-i-1>TURN) ? vk1j1 : INF; // i+1 j-1
+            en = (j-1-i-1>TURN) ? vi1j1 : INF; // i+1 j-1
 
             if (en != INF) {
 
@@ -343,16 +325,10 @@ void rotate_arrays(auto &WM2, auto &dmli1, auto &dmli2){
 
 
 /**
-* @brief Computes the multiloop V contribution (in essence VM)
+* @brief Computes the multiloop V contribution. This gives back essentially VM(i,j).
 * 
 * @param dmli1 Row of WM2 from one iteration ago
-* @param dmli2 Row of WM2 from two iterations ago
-* @param S Sequence Encoding
-* @param params Parameters
-* @param i Current i
-* @param j Current j
-* @param p_table Restricted Array
-* @return energy_t 
+* @param dmli2 Row of WM2 from two iterations ago 
 */
 energy_t E_MbLoop(auto const& dmli1, auto const& dmli2, auto const& S, auto const& params, cand_pos_t i, cand_pos_t j, auto const& p_table){
 
@@ -455,23 +431,15 @@ energy_t E_MbLoop(auto const& dmli1, auto const& dmli2, auto const& S, auto cons
 	return e;
 }
 /**
-* @brief Computes the Multiloop WM contribution 
-* 
-* @param vkj V at k and j
-* @param vk1j V at k+1 and j
-* @param vkj1 V at k and j-1
-* @param vk1j1 V at k+1 and j-1
-* @param WM WM array
-* @param CL Candidate List
-* @param S Sequence Encoding
-* @param params Parameters
-* @param i Current i
-* @param j Current j
-* @param n Length
-* @param p_table Restricted array
-* @return energy_t 
+ * @brief Gives the WM(i,j) energy. The type of dangle model being used affects this energy. 
+ * The type of dangle is also changed to reflect this.
+ * 
+ * @param vij The V(i,j) energy
+ * @param vi1j The V(i+1,j) energy
+ * @param vij1 The V(i,j-1) energy
+ * @param vi1j1 The V(i+1,j-1) energy
 */
-energy_t E_MLStem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const& vk1j1, auto const& WM, auto const& CL,auto const& S, auto const& params,cand_pos_t i, cand_pos_t j,Dangle &d, auto const& n, auto const& p_table){
+energy_t E_MLStem(auto const& vij,auto const& vi1j,auto const& vij1,auto const& vi1j1,auto const& S, auto const& params,cand_pos_t i, cand_pos_t j,Dangle &d, auto const& n, auto const& p_table){
 
 	energy_t e = INF,en=INF;
 
@@ -479,7 +447,7 @@ energy_t E_MLStem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const& 
 
 
 	if ((p_table[i] < -1 && p_table[j] < -1) || (p_table[i] == j)) {
-		en = vkj; // i j
+		en = vij; // i j
 		if (en != INF) {
             base_type mm5 = i>1 ? S[i-1] : -1;
             base_type mm3 = j<n ? S[j+1] : -1;
@@ -495,7 +463,7 @@ energy_t E_MLStem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const& 
 		base_type mm5 = S[i], mm3 = S[j];
 
 		if (((p_table[i+1] < -1 && p_table[j] < -1) || (p_table[i+1] == j)) && p_table[i] < 0) {
-      		en = (j-i-1 >TURN) ? vk1j : INF; // i+1 j
+      		en = (j-i-1 >TURN) ? vi1j : INF; // i+1 j
       		if (en != INF) {
         		en += params->MLbase;
 
@@ -510,7 +478,7 @@ energy_t E_MLStem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const& 
     	}
 
 		if (((p_table[i] < -1 && p_table[j-1] < -1) || (p_table[i] == j-1)) && p_table[j] < 0) {
-      		en = (j-1-i>TURN) ? vkj1 : INF; // i j-1
+      		en = (j-1-i>TURN) ? vij1 : INF; // i j-1
       		if (en != INF) {
        			en += params->MLbase;
 
@@ -524,7 +492,7 @@ energy_t E_MLStem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const& 
       		}
     	}
     	if (((p_table[i+1] < -1 && p_table[j-1] < -1) || (p_table[i+1] == j-1)) && p_table[i] < 0 && p_table[j]<0) {
-      		en = (j-1-i-1>TURN) ? vk1j1 : INF; // i+1 j-1
+      		en = (j-1-i-1>TURN) ? vi1j1 : INF; // i+1 j-1
       		if (en != INF) {
         		en += 2 * params->MLbase;
 
@@ -545,17 +513,13 @@ energy_t E_MLStem(auto const& vkj,auto const& vk1j,auto const& vkj1,auto const& 
 }
 
 /**
-* @brief Recompute row of WM 
+* @brief Recompute row of WM. This is used in the traceback when we haved decided the current i.j pair closes a multiloop,
+* and the WM energies need to be recomputed fom the candidates.
 * 
 * @param WM WM array
 * @param CL Candidate List
-* @param S Sequence Encoding
-* @param params Parameters
-* @param n length
 * @param i Current i
 * @param max_j Current j
-* @param p_table Restricted array
-* @return auto const 
 */
 auto const recompute_WM(auto const& WM, auto const &CL, auto const& S, auto const &params, auto const& n, cand_pos_t i, cand_pos_t max_j, const cand_pos_t* p_table, const cand_pos_t* up_array) {
 	
@@ -587,33 +551,25 @@ auto const recompute_WM(auto const& WM, auto const &CL, auto const& S, auto cons
 }
 
 /**
-* @brief Recompute row of WM2 
+* @brief Recompute row of WM2. This is used in the traceback when we haved decided the current i.j pair closes a multiloop,
+* and the WM2 energies need to be recomputed fom the candidates to get the corresponding energy for it.
 * 
 * @param WM WM array
 * @param WM2 WM2 array
 * @param CL Candidate List
-* @param S Sequence Encoding
-* @param params parameters
-* @param n length
-* @param i current i
-* @param max_j current j
-* @param p_table restricted array
-* @param last_j_array restricted array
-* @param in_pair_array restricted array
-* @return auto const 
+* @param i Current i
+* @param max_j Current j
 */
 auto const recompute_WM2(auto const& WM, auto const& WM2, auto const CL, auto const& S, auto const &params, auto const& n, cand_pos_t i, cand_pos_t max_j, const cand_pos_t* p_table) {
 	
 
 	assert(i>=1);
-	//assert(i+2*TURN+3<=max_j);
 	assert(max_j<= n);
 
 	std::vector<energy_t> temp = WM2;
 
 	for ( cand_pos_t j=i-1; j<=std::min(i+2*TURN+2,max_j); j++ ) { temp[j]=INF; }
 
-	// #pragma omp parallel for num_threads(6);
 	for ( cand_pos_t j=i+2*TURN+3; j<=max_j; j++ ) {
 		energy_t wm2 = INF;
 		bool paired = 0;
@@ -622,7 +578,6 @@ auto const recompute_WM2(auto const& WM, auto const& WM2, auto const CL, auto co
 			cand_pos_t k = it->first;
 			paired += (p_table[k] == j && p_table[j] == k);
 			auto const [v_kj,d] = decode(it->third);
-			// if(j==max_j) printf("k is %lu and j is %lu and WM[k-1] is %d and vkj is %d and wm2 is %d\n",k,j,WM[k-1],v_kj,wm2);
 			wm2 = std::min( wm2, WM[k-1]  + v_kj );
 		}
 		if(p_table[j]<0 && !paired) wm2 = std::min(wm2, temp[j-1] + params->MLbase);
@@ -632,14 +587,13 @@ auto const recompute_WM2(auto const& WM, auto const& WM2, auto const CL, auto co
 }
 
 /**
- * @brief Test existence of candidate
+ * @brief Test existence of candidate. Used primarily for determining whether (i,j) is candidate for W/WM splits
  * 
  * @param CL Candidate List
- * @param cand_comp 
+ * @param cand_comp Candidate Comparator
  * @param i start
  * @param j end
- * @return true 
- * @return whether (i,j) is candidate for W/WM splits 
+ * @return  
  */
 bool is_candidate(auto const& CL,auto const& cand_comp,cand_pos_t i, cand_pos_t j) {
 	const cand_list_t &list = CL[j];
@@ -649,16 +603,21 @@ bool is_candidate(auto const& CL,auto const& cand_comp,cand_pos_t i, cand_pos_t 
 	return it!=list.end() && it->first==i;
 }
 /**
- * Within the traceback, this function finds whether the multiloop has a dangle on the closing pair
+ * @brief Determines the type of dangle being used for a closing multiloop while in traceback.
+ * 
+ * @param WM2ij The WM2 energy for the region [i,j]
+ * @param WM2i1j The WM2 energy for the region [i+1,j]
+ * @param WM2ij1 The WM2 energy for the region [i,j-1]
+ * @param WM2i1j1 The WM2 energy for the region [i+1,j-1]
 */
-void find_mb_dangle(const energy_t &vkj,const energy_t &vk1j,const energy_t &vkj1,const energy_t &vk1j1,auto const &params, auto const& S, const cand_pos_t &i, const cand_pos_t &j, cand_pos_t &k, cand_pos_t &l,const cand_pos_t* p_table){
+void find_mb_dangle(const energy_t &WM2ij,const energy_t &WM2i1j,const energy_t &WM2ij1,const energy_t &WM2i1j1,auto const &params, auto const& S, const cand_pos_t &i, const cand_pos_t &j, cand_pos_t &k, cand_pos_t &l,const cand_pos_t* p_table){
 	if(params->model_details.dangles == 2) return;
 
 	pair_type tt = pair[S[j]][S[i]];
-	energy_t e1 = vkj +  E_MLstem(tt, -1, -1, params);
-	energy_t e2 = vk1j +  E_MLstem(tt, -1, S[i+1], params);
-	energy_t e3 = vkj1 +  E_MLstem(tt, S[j-1], -1, params);
-	energy_t e4 = vk1j1 +  E_MLstem(tt, S[j-1], S[i+1], params);
+	energy_t e1 = WM2ij +  E_MLstem(tt, -1, -1, params);
+	energy_t e2 = WM2i1j +  E_MLstem(tt, -1, S[i+1], params);
+	energy_t e3 = WM2ij1 +  E_MLstem(tt, S[j-1], -1, params);
+	energy_t e4 = WM2i1j1 +  E_MLstem(tt, S[j-1], S[i+1], params);
 	energy_t e = e1;
 	if(e2<e && p_table[i+1]< 0){
 		e = e2;
@@ -678,31 +637,18 @@ void find_mb_dangle(const energy_t &vkj,const energy_t &vk1j,const energy_t &vkj
  }
 
 /**
- * @brief Trace from W entry
+ * @brief Traceback from W entry.
+ * pre: W contains values of row i in interval i..j
  * 
  * @param seq Sequence
- * @param CL Candidate List
- * @param cand_comp Candidate Comparator
  * @param structure Final structure
- * @param params Parameters
- * @param S Sequence Encoding
- * @param S1 Sequence Encoding
- * @param ta trace arrows
  * @param W W array
- * @param WM WM array
- * @param WM2 WM2 array
- * @param n Length
- * @param mark_candidates Whether candidates are marked as [ ]
  * @param i row index
  * @param j column index
- * @param p_table Restricted Array
- * @param last_j_array Restricted Array
- * @param in_pair_array Restricted Array
- * pre: W contains values of row i in interval i..j
  */
 void trace_W(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S,auto const& S1, auto &ta, auto const& W, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates, cand_pos_t i, cand_pos_t j,const cand_pos_t* p_table, const cand_pos_t* up_array) {
-	// printf("W at %lu and %lu with %d\n",i,j,W[j]);
 	if (i+TURN+1>=j) return;
+	
 	// case j unpaired
 	if (W[j] == W[j-1]) {
 		trace_W(seq,CL,cand_comp,structure,params,S,S1,ta,W,WM,WM2,n,mark_candidates,i,j-1,p_table,up_array);
@@ -762,35 +708,16 @@ void trace_W(auto const& seq, auto const& CL, auto const& cand_comp, auto &struc
 }
 
 /**
-* @brief Trace from V entry
+* @brief Traceback from V entry
 * 
-* @param seq Sequence
-* @param CL Candidate List
-* @param cand_comp Candidate Comparator
 * @param structure Final Structure
-* @param params Parameters
-* @param S Sequence Encoding
-* @param S1 Sequence Encoding
-* @param ta Trace Arrows
-* @param WM WM array
-* @param WM2 WM2 array
-* @param n Length
 * @param mark_candidates Whether Candidates should be [ ]
 * @param i row index
 * @param j column index
-* @param e energy in V[i,j]
-* @param p_table Restricted Array
-* @param last_j_array Restricted Array
-* @param in_pair_array Restricted Array
-* pre: structure is string of size (n+1)
 */
-void trace_V(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S,auto const& S1, auto &ta, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates, cand_pos_t i, cand_pos_t j, energy_t e,const cand_pos_t* p_table,const cand_pos_t* up_array) {
-	// printf("V at %lu and %lu with %d and %c and %c\n",i,j,e,seq[i-1],seq[j-1]);
-	
+void trace_V(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S,auto const& S1, auto &ta, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates, cand_pos_t i, cand_pos_t j, energy_t e,const cand_pos_t* p_table,const cand_pos_t* up_array) {	
 
 	assert( i+TURN+1<=j );
-	assert( j<=n );
-	
 	
 	if (mark_candidates && is_candidate(CL,cand_comp,i,j)) {
 		structure[i]='{';
@@ -814,11 +741,9 @@ void trace_V(auto const& seq, auto const& CL, auto const& cand_comp, auto &struc
 	}
 	else {
 
-		// assert(ptype_closing>0);
 		// try to trace back to a candidate: (still) interior loop case
 		cand_pos_t l_min = std::max((int)i,(int) j-31);
 		for ( cand_pos_t l=j-1; l>l_min; l--) {
-			// Break if it's an assured dangle case
 			for ( auto it=CL[l].begin(); CL[l].end()!=it && it->first>i; ++it ) {
 				const cand_pos_t k=it->first;
 				if(k-i > 31) continue;
@@ -830,8 +755,7 @@ void trace_V(auto const& seq, auto const& CL, auto const& cand_comp, auto &struc
 			}
 		}
 	}
-	// std::cout << "here" << std::endl;
-	// is this a hairpin?
+	// is it a hairpin?
 	if ( e == HairpinE(seq,S,S1,params,i,j) ) {
 		return;
 	}
@@ -861,31 +785,15 @@ void trace_V(auto const& seq, auto const& CL, auto const& cand_comp, auto &struc
 }
 
 /**
-* @brief Trace from WM
-* 
-* @param seq Sequence
-* @param CL Candidate List
-* @param cand_comp Candidate Comparator
-* @param structure Final Structure
-* @param params Parameters
-* @param S Sequence Encoding
-* @param S1 Sequence Encoding
-* @param ta Trace Arrows
-* @param WM WM array
-* @param WM2 Wm2 array
-* @param n Length
-* @param mark_candidates Whether Candidates should be [ ]
+* @brief Traceback from WM
+*
+* @param WM WM array at [i,j]
+* @param WM2 WM2 array at [i,j]
 * @param i row index
 * @param j column index 
-* @param e energy in WM[i,j] 
-* @param p_table Restricted array
-* @param last_j_array Restricted array
-* @param in_pair_array Restricted array
-* @param dangles Determines Multiloop Contribution
-* pre: vector WM is recomputed for row i
+* @param e energy in WM(i,j) 
 */
 void trace_WM(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S, auto const& S1, auto &ta, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates,cand_pos_t i, cand_pos_t j, energy_t e, const cand_pos_t* p_table, const cand_pos_t* up_array) {
-	// printf("WM at %lu and %lu with %d\n",i,j,e);
 
 	if (i+TURN+1>j) {return;}
 
@@ -955,26 +863,12 @@ void trace_WM(auto const& seq, auto const& CL, auto const& cand_comp, auto &stru
 }
 
 /**
-* @brief Trace from WM2
+* @brief Traceback from WM2
 * 
-* @param seq Sequence
-* @param CL Candidate List
-* @param cand_comp Candidate Comparator
-* @param structure Final Structure
-* @param params Parameters
-* @param S Sequence Encoding
-* @param S1 Sequence Encoding
-* @param ta Trace Arrows
-* @param WM WM array
-* @param WM2 Wm2 array
-* @param n Length
-* @param mark_candidates Whether Candidates should be [ ]
+* @param WM WM array at [i,j]
+* @param WM2 Wm2 array at [i,j]
 * @param i row index
 * @param j column index
-* @param p_table Restricted array
-* @param last_j_array Restricted array
-* @param in_pair_array Restricted array
-* pre: vectors WM and WM2 are recomputed for row i
  */
 void trace_WM2(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S, auto const& S1, auto &ta, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates,cand_pos_t i, cand_pos_t j,const cand_pos_t* p_table, const cand_pos_t* up_array) {
 	// printf("WM2 at %lu and %lu with %d\n",i,j,WM2[j]);
@@ -1058,14 +952,16 @@ const std::string & trace_back(auto const& seq, auto const& CL, auto const& cand
 	return structure;
 }
 
-/* pre: ptype_closing>0 */
+/**
+ * @brief Returns the internal loop energy for a given i.j and k.l
+ * 
+*/
 energy_t ILoopE(auto const& S, auto const& S1, auto const& params, const pair_type& ptype_closing,const cand_pos_t &i,const cand_pos_t &j,const cand_pos_t &k,const cand_pos_t &l)  {
 	assert(ptype_closing>0);
 	assert(1<=i);
 	assert(i<k);
 	assert(k<l);
 	assert(l<j);
-	//assert(l<=len); // don't know len here
 
 	// note: enclosed bp type 'turned around' for lib call
 	const pair_type ptype_enclosed = rtype[pair[S[k]][S[l]]];
@@ -1081,11 +977,13 @@ energy_t ILoopE(auto const& S, auto const& S1, auto const& params, const pair_ty
 * @param i start
 * @param j end
 * @param e energy of candidate "V(i,j)"
+* @param wmij energy at WM(i,j)
+* @param wij energy at W(i,j)
 */
-void register_candidate(auto &CL, cand_pos_t const& i, cand_pos_t const& j, energy_t const& e,energy_t const& ml,energy_t const& wl) {
+void register_candidate(auto &CL, cand_pos_t const& i, cand_pos_t const& j, energy_t const& e,energy_t const& wmij,energy_t const& wij) {
 	assert(i<=j+TURN+1);
 	
-	CL[j].push_back( cand_entry_t(i,e,ml,wl) );
+	CL[j].push_back( cand_entry_t(i,e,wmij,wij) );
 }
 
 /**
@@ -1096,7 +994,6 @@ void register_candidate(auto &CL, cand_pos_t const& i, cand_pos_t const& j, ener
  * @param p_table Restricted array
  * @param last_j_array Restricted array
  * @param in_pair_array Restricted array
- * @param multiloop Boolean to check if we are looking at WM and WM2
  * @return whether i and j can be non INF 
  */
 bool evaluate_restriction(cand_pos_t i, cand_pos_t j, const cand_pos_t *last_j_array, const cand_pos_t *in_pair_array){
@@ -1110,13 +1007,14 @@ bool evaluate_restriction(cand_pos_t i, cand_pos_t j, const cand_pos_t *last_j_a
 	}
 	return evaluate;
 }
-
+/**
+ * @brief Determines the MFE energy for a given sequence
+*/
 energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto const& S, auto const& S1, auto const& params, auto &ta, auto &W, auto &WM, auto &WM2, auto &dmli1, auto &dmli2, auto const& n, auto const& garbage_collect,const cand_pos_t*p_table,const cand_pos_t*last_j_array,const cand_pos_t*in_pair_array,const cand_pos_t*up_array) {
 	Dangle d = 3;
     if(params->model_details.dangles == 0) d = 0;
     
     for (cand_pos_t i=n; i>0; --i) {
-		// int_least32_t si1 = (i>1) ? S[i-1] : -1;
 		for (cand_pos_t j=i+TURN+1; j<=n; j++ ) {
 
 			bool evaluate = evaluate_restriction(i,j,last_j_array,in_pair_array);
@@ -1136,9 +1034,7 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 				wm_split = std::min( wm_split, WM[k-1] + v_kj );
 				if(can_pair) wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + v_kj );
 				wm2_split = std::min( wm2_split, WM[k-1] + v_kj );
-				w_split = std::min( w_split, W[k-1] + v_kjw );
-				// if(i==20 && j ==31) printf("k is %lu and j is %lu and wm_split is %d\n",k,j,wm_split);
-		
+				w_split = std::min( w_split, W[k-1] + v_kjw );		
 				
 			}
 			if(p_table[j]<0) w_split = std::min(w_split,W[j-1]);
@@ -1193,7 +1089,6 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 							if(V(k_mod,l) == INF || ((p_table[k] > -1 || p_table[l] > -1) && p_table[k] != l )) continue;
 							
 							const energy_t v_iloop_kl = cank && up_array[j-1]>=(j-l-1) ? V(k_mod,l) + E_IntLoop(k-i-1,j-l-1,ptype_closing,rtype[pair[S[k]][S[l]]],S1[i+1],S1[j-1],S1[k-1],S1[l+1],const_cast<paramT *>(params)) : INF;
-							// if(i==235 && j == 296) printf("k is %lu and l is %lu and viloop is %d\n",k,l,v_iloop_kl);
 							if ( v_iloop_kl < v_iloop) {
 								v_iloop = v_iloop_kl;
 								best_l=l;
@@ -1212,11 +1107,8 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 				// register required trace arrows from (i,j)
 				if ( v_iloop < std::min(v_h,v_split) ) {
 					if ( is_candidate(CL,cand_comp,best_k,best_l) ) {
-						//std::cout << "Avoid TA "<<best_k<<" "<<best_l<<std::endl;
 						avoid_trace_arrow(ta);
 					} else {
-						//std::cout<<"Reg TA "<<i<<","<<j<<":"<<best_k<<","<<best_l<<std::endl;
-						
 						register_trace_arrow(ta,i,j,best_k,best_l,best_e);
 					}
 				}
@@ -1240,7 +1132,7 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 			if(params->model_details.dangles == 1) d =0;
 			const energy_t w_v  = E_ext_Stem(v,vi1j,vij1,vi1j1,S,params,i,j,d,n,p_table);
 			// Checking the dangle positions for W
-			const energy_t wm_v = E_MLStem(v,vi1j,vij1,vi1j1,WM,CL,S,params,i,j,d,n,p_table);
+			const energy_t wm_v = E_MLStem(v,vi1j,vij1,vi1j1,S,params,i,j,d,n,p_table);
 			cand_pos_t k = i;
             cand_pos_t l = j;
 			if(params->model_details.dangles == 1){
@@ -1261,14 +1153,6 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
                 }
 			}
 			
-		
-
-
-			// if(i==5 && j == 15) printf("i is %lu and j is %lu and v is %d and vd is %d and d is %d\n",i,j,v,w_v,w_split);
-			// if(i==3 && j == 17) printf("i is %lu and j is %lu and v is %d and vd is %d and d is %d\n",i,j,v,w_v,d);
-			// if(i==2 && j == 18) printf("i is %lu and j is %lu and v is %d and vd is %d and d is %d\n",i,j,v,w_v,d);
-			// if(i==1 && j == 19) printf("i is %lu and j is %lu and v is %d and vd is %d and d is %d\n",i,j,v,w_v,d);
-			// if(i==7 && j == 12) printf("i is %lu and j is %lu and v is %d\n",i,j,v);
 			w  = std::min(w_v, w_split);
 			wm = std::min(wm_v, wm_split);
 			if ( w_v < w_split || wm_v < wm_split || paired) {
@@ -1444,19 +1328,12 @@ main(int argc,char **argv) {
 	
 	
 	energy_t mfe = fold(sparsemfefold.seq_,sparsemfefold.V_,sparsemfefold.cand_comp,sparsemfefold.CL_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.params_,sparsemfefold.ta_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_, sparsemfefold.dmli1_, sparsemfefold.dmli2_,sparsemfefold.n_,sparsemfefold.garbage_collect_, p_table,last_j_array,in_pair_array,up_array);		
-	// std::cout << mfe << std::endl;
 	std::string structure = trace_back(sparsemfefold.seq_,sparsemfefold.CL_,sparsemfefold.cand_comp,sparsemfefold.structure_,sparsemfefold.params_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.ta_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_,sparsemfefold.n_,p_table,up_array, mark_candidates);
 	
 	std::ostringstream smfe;
 	smfe << std::setiosflags(std::ios::fixed) << std::setprecision(2) << mfe/100.0 ;
 
 	std::cout << structure << " ("<<smfe.str()<<")"<<std::endl;
-
-	// float factor=1024;
-	
-	// const std::string unit=" kB";
-	
-	
 	
 	if (verbose) {
 		

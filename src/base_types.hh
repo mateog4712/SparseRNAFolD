@@ -1,22 +1,19 @@
-#ifndef BASE_HH
-#define BASE_HH
+#ifndef BASE_TYPES_HH
+#define BASE_TYPES_HH
 
 #include <iostream>
-#include <utility>
+// #include <utility>
 // #include <vector>
 
 //! type of energy
 typedef int_least32_t energy_t;
+//! type of position
 typedef int_least32_t cand_pos_t;
+//! type of base pair
 typedef int_least8_t pair_type;
+//! type of dangle type
 typedef int_least8_t Dangle;
-typedef int_least16_t base_type;
-
-// template<class T1,class T2>
-// std::ostream &operator << (std::ostream &out, const std::pair<T1,T2> &x) {
-//     out<<"("<<x.first<<","<<x.second<<")";
-//     return out;
-// }
-
+//! type of base type
+typedef int_least8_t base_type;
 
 #endif // BASE_HH

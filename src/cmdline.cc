@@ -100,7 +100,7 @@ static void clear_given (struct args_info *args_info)
   args_info->mark_candidates_given = 0 ;
   args_info->input_structure_given = 0 ;
   args_info->dangles_given = 0 ;
-   args_info->paramFile_given = 0 ;
+  args_info->paramFile_given = 0 ;
   args_info->noGC_given = 0 ;
 }
 

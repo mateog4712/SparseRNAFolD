@@ -1313,6 +1313,7 @@ main(int argc,char **argv) {
 	cand_pos_t p_table[n+1] = {0};
 	cand_pos_t up_array[n+1] = {0};
 	
+	cmdline_parser_free(&args_info);
 
 	std::cout << seq << std::endl;
 	

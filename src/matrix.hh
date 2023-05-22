@@ -50,8 +50,8 @@ namespace LocARNA {
 	 * @note this method is used for all internal access to the vector mat_
 	 */
 	size_type addr(size_type i, size_type j) const {
-	    assert(0<=i && i<this->xdim_);
-	    assert(0<=j && j<this->ydim_);
+	    // assert(0<=i && i<this->xdim_);
+	    // assert(0<=j && j<this->ydim_);
 	    return i*ydim_+j;
 	}
 
@@ -106,6 +106,20 @@ namespace LocARNA {
 	    ydim_=ydim;
 	
 	    mat_.resize(xdim_*ydim_);
+	}
+
+	/** 
+	 * Resize both dimensions
+	 *
+	 * @param xdim first dimension
+	 * @param ydim second dimension
+	 */
+	void
+	resize(size_type xdim, size_type ydim,const T& __x) {
+	    xdim_=xdim;
+	    ydim_=ydim;
+	
+	    mat_.resize(xdim_*ydim_,__x);
 	}
     
 	/** 

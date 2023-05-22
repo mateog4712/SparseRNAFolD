@@ -9,6 +9,7 @@
 typedef int_least32_t energy_t;
 //! type of position
 typedef int_least32_t cand_pos_t;
+typedef uint_fast32_t cand_pos_tu;
 //! type of base pair
 typedef int_least8_t pair_type;
 //! type of dangle type

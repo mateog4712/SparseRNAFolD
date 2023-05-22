@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <cassert>
+#include "base_types.hh"
 
 /**
  * @brief Space saving replacement for map of trace arrows in rows
@@ -102,12 +103,12 @@ public:
 	vec.swap(*this);
     }
 
-    size_t
+    cand_pos_tu
     size() const {
 	return key_val_vec_t::size();
     }
 
-    size_t
+    cand_pos_tu
     capacity() const {
 	return key_val_vec_t::capacity();
     }

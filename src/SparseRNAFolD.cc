@@ -241,7 +241,7 @@ energy_t E_ext_Stem(auto const& vij,auto const& vi1j,auto const& vij1,auto const
 
 	energy_t e = INF,en = INF;
   	pair_type tt  = pair[S[i]][S[j]];
-
+	
     if ((p_table[i] <-1 && p_table[j] <-1) || (p_table[i] == j && p_table[j] == i)) {
 				en = vij; // i j
 
@@ -250,8 +250,10 @@ energy_t E_ext_Stem(auto const& vij,auto const& vi1j,auto const& vij1,auto const
 				if (en != INF) {
 					if (params->model_details.dangles == 2)
                         en += vrna_E_ext_stem(tt, si1, sj1, params);
-                    else
+                    else{
                         en += vrna_E_ext_stem(tt, -1, -1, params);
+						d = 0;
+					}
 
                     e = MIN2(e, en);
 					
@@ -449,17 +451,19 @@ energy_t E_MLStem(auto const& vij,auto const& vi1j,auto const& vij1,auto const& 
 	if ((p_table[i] < -1 && p_table[j] < -1) || (p_table[i] == j)) {
 		en = vij; // i j
 		if (en != INF) {
-            base_type mm5 = i>1 ? S[i-1] : -1;
-            base_type mm3 = j<n ? S[j+1] : -1;
-			if (params->model_details.dangles == 2)
+			if (params->model_details.dangles == 2){
+				base_type mm5 = i>1 ? S[i-1] : -1;
+            	base_type mm3 = j<n ? S[j+1] : -1;
 				en += E_MLstem(type, mm5, mm3, params);
-			else
+			}
+			else{
 				en += E_MLstem(type, -1, -1, params);
-
+				d = 0;
+			}
 			e = MIN2(e, en);
 		}
 	}
-	if(params->model_details.dangles == 1 && p_table[i] != j and p_table[j] != i){
+	if(params->model_details.dangles == 1){
 		base_type mm5 = S[i], mm3 = S[j];
 
 		if (((p_table[i+1] < -1 && p_table[j] < -1) || (p_table[i+1] == j)) && p_table[i] < 0) {
@@ -522,10 +526,6 @@ energy_t E_MLStem(auto const& vij,auto const& vi1j,auto const& vij1,auto const& 
 * @param max_j Current j
 */
 auto const recompute_WM(auto const& WM, auto const &CL, auto const& S, auto const &params, auto const& n, cand_pos_t i, cand_pos_t max_j, const cand_pos_t* p_table, const cand_pos_t* up_array) {
-	
-
-	assert(i>=1);
-	assert(max_j<=n);
 
 	std::vector<energy_t> temp = WM;
 
@@ -533,17 +533,15 @@ auto const recompute_WM(auto const& WM, auto const &CL, auto const& S, auto cons
 	
 	for ( size_t j=i+TURN+1; j<=max_j; j++ ) {
 		energy_t wm = INF;
-		bool paired = 0;
 		for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>=i ; ++it ) {
 			cand_pos_t k = it->first;
-			paired += (p_table[k] == j);
-			// auto const [v_kj,d] = decode(it->third);
 			energy_t v_kj = it->third >> 2;
-			bool can_pair = up_array[k-1] >= (k-i) ? true : false;
+
+			bool can_pair = up_array[k-1] >= (k-i);
 			if(can_pair) wm = std::min( wm, static_cast<energy_t>(params->MLbase*(k-i)) + v_kj );
 			wm = std::min( wm, temp[k-1]  + v_kj );
 		}
-		if(p_table[j]<0 && !paired) wm = std::min(wm, temp[j-1] + params->MLbase);
+		if(p_table[j]<0) wm = std::min(wm, temp[j-1] + params->MLbase);
 		temp[j] = wm;
 	}
 	return temp;
@@ -560,10 +558,6 @@ auto const recompute_WM(auto const& WM, auto const &CL, auto const& S, auto cons
 * @param max_j Current j
 */
 auto const recompute_WM2(auto const& WM, auto const& WM2, auto const CL, auto const& S, auto const &params, auto const& n, cand_pos_t i, cand_pos_t max_j, const cand_pos_t* p_table) {
-	
-
-	assert(i>=1);
-	assert(max_j<= n);
 
 	std::vector<energy_t> temp = WM2;
 
@@ -571,16 +565,14 @@ auto const recompute_WM2(auto const& WM, auto const& WM2, auto const CL, auto co
 
 	for ( cand_pos_t j=i+2*TURN+3; j<=max_j; j++ ) {
 		energy_t wm2 = INF;
-		bool paired = 0;
 		for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>i+TURN+1 ; ++it ) {
 			
 			cand_pos_t k = it->first;
-			paired += (p_table[k] == j && p_table[j] == k);
-			// auto const [v_kj,d] = decode(it->third);
 			energy_t v_kj = it->third >> 2;
+			
 			wm2 = std::min( wm2, WM[k-1]  + v_kj );
 		}
-		if(p_table[j]<0 && !paired) wm2 = std::min(wm2, temp[j-1] + params->MLbase);
+		if(p_table[j]<0) wm2 = std::min(wm2, temp[j-1] + params->MLbase);
 		temp[j] = wm2;
 	}
 	return temp;
@@ -611,13 +603,12 @@ bool is_candidate(auto const& CL,auto const& cand_comp,cand_pos_t i, cand_pos_t 
  * @param WM2i1j1 The WM2 energy for the region [i+1,j-1]
 */
 void find_mb_dangle(const energy_t WM2ij,const energy_t WM2i1j,const energy_t WM2ij1,const energy_t WM2i1j1,auto const &params, auto const& S, const cand_pos_t i, const cand_pos_t j, cand_pos_t k, cand_pos_t l,const cand_pos_t* p_table){
-	if(params->model_details.dangles == 2) return;
 
-	pair_type tt = pair[S[j]][S[i]];
-	energy_t e1 = WM2ij +  E_MLstem(tt, -1, -1, params);
-	energy_t e2 = WM2i1j +  E_MLstem(tt, -1, S[i+1], params);
-	energy_t e3 = WM2ij1 +  E_MLstem(tt, S[j-1], -1, params);
-	energy_t e4 = WM2i1j1 +  E_MLstem(tt, S[j-1], S[i+1], params);
+	const pair_type tt = pair[S[j]][S[i]];
+	const energy_t e1 = WM2ij +  E_MLstem(tt, -1, -1, params);
+	const energy_t e2 = WM2i1j +  E_MLstem(tt, -1, S[i+1], params);
+	const energy_t e3 = WM2ij1 +  E_MLstem(tt, S[j-1], -1, params);
+	const energy_t e4 = WM2i1j1 +  E_MLstem(tt, S[j-1], S[i+1], params);
 	energy_t e = e1;
 	if(e2<e && p_table[i+1]< 0){
 		e = e2;
@@ -1003,65 +994,22 @@ void register_candidate(auto &CL, cand_pos_t const& i, cand_pos_t const& j, ener
  */
 bool evaluate_restriction(cand_pos_t i, cand_pos_t j, const cand_pos_t *last_j_array, const cand_pos_t *in_pair_array){
 	bool evaluate = 1;
-	if(in_pair_array[i]>in_pair_array[j]) evaluate = 0;
-
-	if(in_pair_array[i]<in_pair_array[j]) evaluate = 0;
-
-	if(in_pair_array[i]==in_pair_array[j]){
-		if(j>last_j_array[i]) evaluate = 0;
-	}
+	// if(in_pair_array[i]>in_pair_array[j]) evaluate = 0;
+	evaluate &= ~(in_pair_array[i]>in_pair_array[j]);
+	// if(in_pair_array[i]<in_pair_array[j]) evaluate = 0;
+	evaluate &= ~(in_pair_array[i]<in_pair_array[j]);
+	// if(in_pair_array[i]==in_pair_array[j]) if(j>last_j_array[i]) evaluate = 0
+	evaluate &= ((in_pair_array[i]==in_pair_array[j]) & ~(j>last_j_array[i]));
+	
 	return evaluate;
 }
-void split_cases(auto const &CL,auto &wm_split,auto &wm2_split,auto &w_split, auto const& WM, auto const& W,cand_pos_t i, cand_pos_t j, const cand_pos_t*p_table,  const cand_pos_t*up_array, auto &params){
-	for ( auto it=CL.begin();CL.end() != it;++it ) {
-		cand_pos_t k=it->first;
-		// Decode the energies
-		energy_t v_kj = it->third >> 2;
-		energy_t v_kjw = it->fourth >> 2;
-		bool can_pair = up_array[k-1] >= (k-i);
-		
-		wm_split = std::min( wm_split, WM[k-1] + v_kj );
-		if(can_pair) wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + v_kj );
-		wm2_split = std::min( wm2_split, WM[k-1] + v_kj );
-		w_split = std::min( w_split, W[k-1] + v_kjw );		
-				
-	}
-}
-// void interior_loop(auto &V,energy_t &v_iloop,cand_pos_t i, cand_pos_t j,cand_pos_t &best_k, cand_pos_t &best_l, energy_t &best_e,auto& S,auto &S1,const cand_pos_t *p_table,const cand_pos_t *up_array, auto const &params){
-// 	const pair_type ptype_closing = pair[S[i]][S[j]];
-// 	cand_pos_t max_k = std::min(j-TURN-2,i+MAXLOOP+1);
-// 	if((p_table[i]<-1 && p_table[j] < -1) || p_table[i] == j) { 
-// 		for ( cand_pos_t k=i+1; k<=max_k; k++) {
-// 			cand_pos_t k_mod= k%(MAXLOOP+1);
-			
-// 			// bool cank = up_array[k-1]>=(k-i-1);
-// 			energy_t cank = ~(up_array[k-1]>=(k-i-1)-1);
-// 			cand_pos_t min_l=std::max(k+TURN+1 + MAXLOOP+2, k+j-i) - MAXLOOP-2;
-			
-// 			for (size_t l=j-1; l>=min_l; --l) {
-// 				energy_t canl = ~(~(up_array[j-1]>=(j-l-1)-1) & cank);
-// 				energy_t v_iloop_kl = INF & canl;
-// 				// if(canl) v_iloop_kl = V(k_mod,l) + E_IntLoop(k-i-1,j-l-1,ptype_closing,rtype[pair[S[k]][S[l]]],S1[i+1],S1[j-1],S1[k-1],S1[l+1],const_cast<paramT *>(params));
-// 				v_iloop_kl = v_iloop_kl + V(k_mod,l) + E_IntLoop(k-i-1,j-l-1,ptype_closing,rtype[pair[S[k]][S[l]]],S1[i+1],S1[j-1],S1[k-1],S1[l+1],const_cast<paramT *>(params));
-// 				// const energy_t v_iloop_kl = cank & canl ? V(k_mod,l) + E_IntLoop(k-i-1,j-l-1,ptype_closing,rtype[pair[S[k]][S[l]]],S1[i+1],S1[j-1],S1[k-1],S1[l+1],const_cast<paramT *>(params)) : INF;
-// 				if ( v_iloop_kl < v_iloop) {
-// 					v_iloop = v_iloop_kl;
-// 					best_l=l;
-// 					best_k=k;
-// 					best_e=V(k_mod,l);
-// 				}
-// 			}
-			
-// 		}
-// 	}
 
-// }
 /**
  * @brief Determines the MFE energy for a given sequence
 */
 energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto const& S, auto const& S1, auto const& params, auto &ta, auto &W, auto &WM, auto &WM2, auto &dmli1, auto &dmli2, auto const& n, auto const& garbage_collect,const cand_pos_t*p_table,const cand_pos_t*last_j_array,const cand_pos_t*in_pair_array,const cand_pos_t*up_array) {
 	Dangle d = 3;
-    if(params->model_details.dangles == 0) d = 0;
+    if(params->model_details.dangles == 0 || params->model_details.dangles == 1) d = 0;
     
     for (cand_pos_t i=n; i>0; --i) {
 		for (cand_pos_t j=i+TURN+1; j<=n; j++ ) {
@@ -1073,21 +1021,20 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 			energy_t w_split = INF;
 			energy_t wm_split = INF;
 			energy_t wm2_split = INF;
-			// for ( auto it=CL[j].begin();CL[j].end() != it;++it ) {
-			// 	const cand_pos_t k=it->first;
-			// 	// Decode the energies
-			// 	const energy_t v_kj = it->third >> 2;
-			// 	const energy_t v_kjw = it->fourth >> 2;
+			for ( auto it=CL[j].begin();CL[j].end() != it;++it ) {
+				const cand_pos_t k=it->first;
+				// Decode the energies
+				const energy_t v_kj = it->third >> 2;
+				const energy_t v_kjw = it->fourth >> 2;
 
-			// 	const bool can_pair = up_array[k-1] >= (k-i) ? true: false;
+				const bool can_pair = up_array[k-1] >= (k-i) ? true: false;
 				
-			// 	wm_split = std::min( wm_split, WM[k-1] + v_kj );
-			// 	if(can_pair) wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + v_kj );
-			// 	wm2_split = std::min( wm2_split, WM[k-1] + v_kj );
-			// 	w_split = std::min( w_split, W[k-1] + v_kjw );		
+				wm_split = std::min( wm_split, WM[k-1] + v_kj );
+				if(can_pair) wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + v_kj );
+				wm2_split = std::min( wm2_split, WM[k-1] + v_kj );
+				w_split = std::min( w_split, W[k-1] + v_kjw );		
 				
-			// }
-			split_cases(CL[j],wm_split,wm2_split,w_split,WM,W,i,j,p_table,up_array,params);
+			}
 			if(p_table[j]<0) w_split = std::min(w_split,W[j-1]);
 			if(p_table[j]<0) wm2_split = std::min( wm2_split, WM2[j-1] + params->MLbase );
 			if(p_table[j]<0) wm_split = std::min( wm_split, WM[j-1] + params->MLbase );
@@ -1149,7 +1096,6 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 						
 					}
 				}
-				// interior_loop(V,v_iloop,i,j,best_k,best_l,best_e,S,S1,p_table,up_array,params);
 				const energy_t v_split = E_MbLoop(dmli1,dmli2,S,params,i,j,p_table);
 
 				v = std::min(v_h,std::min(v_iloop,v_split));
@@ -1178,7 +1124,7 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 				
 
 			// Checking the dangle positions for W
-			if(params->model_details.dangles == 1) d =0;
+			// if(params->model_details.dangles == 1) d =0;
 			const energy_t w_v  = E_ext_Stem(v,vi1j,vij1,vi1j1,S,params,i,j,d,n,p_table);
 			// Checking the dangle positions for W
 			const energy_t wm_v = E_MLStem(v,vi1j,vij1,vi1j1,S,params,i,j,d,n,p_table);
@@ -1387,11 +1333,6 @@ main(int argc,char **argv) {
 	smfe << std::setiosflags(std::ios::fixed) << std::setprecision(2) << mfe/100.0 ;
 
 	std::cout << structure << " ("<<smfe.str()<<")"<<std::endl;
-
-	// std::cout << sizeof(cand_entry_t)*capacity_of_candidates(sparsemfefold.CL_)/1024 << std::endl;
-	// std::cout << sizeof(TraceArrow)*maxT(sparsemfefold.ta_)/1024 << std::endl;
-	// auto [x,y] = sparsemfefold.V_.sizes();
-	// std::cout << sizeof(energy_t)*x*y/1024 << std::endl;
 	
 	if (verbose) {
 		

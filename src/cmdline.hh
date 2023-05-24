@@ -1,5 +1,6 @@
 #ifndef CMDLINE_H
 #define CMDLINE_H
+#include "base_types.hh"
 #include <string>
 
 
@@ -9,8 +10,8 @@ extern std::string input_structure;
 // The parameter file location
 extern std::string parameter_file;
 
-// The number of dangles
-extern int dangles;
+// The dangle model
+extern int dangle_model;
 
 /** @brief Where the command line options are stored */
 struct args_info
@@ -92,10 +93,5 @@ void cmdline_parser_init (struct args_info *args_info);
  * @param args_info the structure to deallocate
  */
 void cmdline_parser_free (struct args_info *args_info);
-
-
-
-
-
 
 #endif

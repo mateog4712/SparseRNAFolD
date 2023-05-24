@@ -5,60 +5,13 @@
 * minimization algorithm (RNA folding equivalent to the Zuker
 * algorithm).
 *
-* The results are equivalent to RNAfold -d0.
-*
-* Demonstration of space-efficient sparsification with trace-back.
-*
-* Since many matrix entries can not be efficiently recomputed in
-* trace back, we store trace arrows to such entries. To save space,
-* trace arrows are gc'ed and trace arrows to candidates are omitted
-* and reconstructed in trace back.
-*
-* ----------------------------------------
-* Specific recursions:
-
-W(i,j) = min { W(i,j-1);
-				min_i<k<j  W(i,k-1) + V(k,j) <-- W (same i), CLW;
-				V(i,j);
-		0 if i>=j-m
-		}
-
-V(i,j) = min { HairpinE(i,j);
-		min_kl V(i,j)+ILoopE(i,j,k,l) <-- TAs;
-		WM2(i+1,j-1) + a <-- WM2, no TAs;
-		}
-
-WM(i,j) = min { V(i,j)+b      <-- candidate in recomp;
-		WM(i,j-1) + c <-- ! not via candidate list;
-				min_i<k<j (k-i)*c + V(k,j) + b <-- CLWM   ( trick to save trace arrows );
-				min_i<k<j  WM(i,k-1) + V(k,j) + b  <-- WM, CLWM;
-		INF if i>=j-m
-		}
-
-WM2(i,j) = min{ WM2(i,j-1) + c;
-				min_i<k<j  WM(i,k-1) + V(k,j) + b }  <-- WM, CLWM, no TAs;
-
-* ----------------------------------------
-* Candidate criteria:
-*
-(i,j) is a candidate for the split in W if
-V(i,j)      < min {
-					W(i,j-1);
-			min_i<k<j  W(i,k-1) + V(k,j)
-					}
-
-(i,j) is a candidate for the split in WM if
-V(i,j) + b  < min {
-					WM(i,j-1)+c;
-			min_i<k<j (k-i)*c + V(k,j) + b;
-			min_i<k<j  WM(i,k-1) + V(k,j) + b
-					}
-
-*
-* For simplicity and space savings, we store all candidates that
-* meet either criterion in the same list.
+* The results are equivalent to RNAfold.
 */
-
+#define NDEBUG
+#include "base_types.hh"
+#include "cmdline.hh"
+#include "matrix.hh"
+#include "trace_arrows.hh"
 #include <iostream>
 #include <iomanip>
 #include <vector>
@@ -67,17 +20,11 @@ V(i,j) + b  < min {
 #include <string>
 #include <cassert>
 
-#include <matrix.hh>
-#include "base_types.hh"
-#include "trace_arrows.hh"
-
 extern "C" {
 #include "ViennaRNA/pair_mat.h"
 #include "ViennaRNA/loops/all.h"
 #include "ViennaRNA/params/io.h"
 }
-
-#include "cmdline.hh"
 
 // New Candidate structure
 struct quatret
@@ -105,9 +52,7 @@ typedef std::vector< cand_entry_t > cand_list_t;
 
 class SparseMFEFold;
 
-energy_t ILoopE(auto const& S_,auto const& S1_, auto const& params_,const int& ptype_closing, const size_t& i, const size_t& j, const size_t& k,  const size_t& l);
-energy_t MbLoopE(auto const& S_, auto const& params_, int ptype_closing,size_t i, size_t j);
-energy_t Mlstem(auto const& S_, auto const& params_, int ptype_closing,size_t i, size_t j);
+energy_t ILoopE(auto const& S_,auto const& S1_, auto const& params_,const int& ptype_closing, const cand_pos_t i, const cand_pos_t j, const cand_pos_t k,  const cand_pos_t l);
 void trace_V(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S,auto const& S1, auto &ta, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates, cand_pos_t i, cand_pos_t j, energy_t e,const cand_pos_t* p_table, const cand_pos_t *up_array);
 void trace_W(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S,auto const& S1, auto &ta, auto const& W, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates, cand_pos_t i, cand_pos_t j,const cand_pos_t* p_table, const cand_pos_t *up_array);
 void trace_WM(auto const& seq, auto const& CL, auto const& cand_comp, auto &structure, auto const& params, auto const& S,auto const& S1, auto &ta, auto &WM, auto &WM2, auto const& n, auto const& mark_candidates, cand_pos_t i, cand_pos_t j, energy_t e,const cand_pos_t* p_table, const cand_pos_t *up_array) ;
@@ -207,6 +152,25 @@ energy_t HairpinE(auto const& seq, auto const& S, auto const& S1, auto const& pa
 	if (ptype_closing==0) return INF;
 
 	return E_Hairpin(j-i-1,ptype_closing,S1[i+1],S1[j-1],&seq.c_str()[i-1], const_cast<paramT *>(params));
+}
+
+/**
+ * @brief Returns the internal loop energy for a given i.j and k.l
+ * 
+*/
+energy_t ILoopE(auto const& S, auto const& S1, auto const& params, const pair_type& ptype_closing,const cand_pos_t &i,const cand_pos_t &j,const cand_pos_t &k,const cand_pos_t &l)  {
+	assert(ptype_closing>0);
+	assert(1<=i);
+	assert(i<k);
+	assert(k<l);
+	assert(l<j);
+
+	// note: enclosed bp type 'turned around' for lib call
+	const pair_type ptype_enclosed = rtype[pair[S[k]][S[l]]];
+
+	// if (ptype_enclosed==0) return INF;
+
+	return E_IntLoop(k-i-1,j-l-1,ptype_closing,ptype_enclosed,S1[i+1],S1[j-1],S1[k-1],S1[l+1],const_cast<paramT *>(params));
 }
 
 /**
@@ -526,7 +490,8 @@ energy_t E_MLStem(auto const& vij,auto const& vi1j,auto const& vij1,auto const& 
 * @param max_j Current j
 */
 auto const recompute_WM(auto const& WM, auto const &CL, auto const& S, auto const &params, auto const& n, cand_pos_t i, cand_pos_t max_j, const cand_pos_t* p_table, const cand_pos_t* up_array) {
-
+	assert(i>=1);
+	assert(max_j<=n_);
 	std::vector<energy_t> temp = WM;
 
 	for ( size_t j=i-1; j<=std::min(i+TURN,max_j); j++ ) { temp[j]=INF; }
@@ -558,7 +523,8 @@ auto const recompute_WM(auto const& WM, auto const &CL, auto const& S, auto cons
 * @param max_j Current j
 */
 auto const recompute_WM2(auto const& WM, auto const& WM2, auto const CL, auto const& S, auto const &params, auto const& n, cand_pos_t i, cand_pos_t max_j, const cand_pos_t* p_table) {
-
+	assert(i>=1);
+	assert(max_j<=n_);
 	std::vector<energy_t> temp = WM2;
 
 	for ( cand_pos_t j=i-1; j<=std::min(i+2*TURN+2,max_j); j++ ) { temp[j]=INF; }
@@ -842,8 +808,7 @@ void trace_WM(auto const& seq, auto const& CL, auto const& cand_comp, auto &stru
 				v = vk - E_MLstem(ptype,S[m],S[j],params);
 			}
             break;
-    }
-    
+    }   
 
     if ( e == WM[m-1] + vk ) {
 		// no recomp, same i
@@ -886,7 +851,6 @@ void trace_WM2(auto const& seq, auto const& CL, auto const& cand_comp, auto &str
 	for ( auto it=CL[j].begin();CL[j].end() != it  && it->first>=i+TURN+1;++it ) {
 		m = it->first;
 		
-		// auto const [v_kj,d] = decode(it->third);
 		energy_t v_kj = it->third >> 2;
 		Dangle d = it->third & 3;
 		if (e == WM[m-1] + v_kj) {
@@ -947,26 +911,6 @@ const std::string & trace_back(auto const& seq, auto const& CL, auto const& cand
 
 	return structure;
 }
-
-/**
- * @brief Returns the internal loop energy for a given i.j and k.l
- * 
-*/
-energy_t ILoopE(auto const& S, auto const& S1, auto const& params, const pair_type& ptype_closing,const cand_pos_t &i,const cand_pos_t &j,const cand_pos_t &k,const cand_pos_t &l)  {
-	assert(ptype_closing>0);
-	assert(1<=i);
-	assert(i<k);
-	assert(k<l);
-	assert(l<j);
-
-	// note: enclosed bp type 'turned around' for lib call
-	const pair_type ptype_enclosed = rtype[pair[S[k]][S[l]]];
-
-	if (ptype_enclosed==0) return INF;
-
-	return E_IntLoop(k-i-1,j-l-1,ptype_closing,ptype_enclosed,S1[i+1],S1[j-1],S1[k-1],S1[l+1],const_cast<paramT *>(params));
-}
-
 
 /**
 * @brief Register a candidate
@@ -1083,9 +1027,13 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 						cand_pos_t min_l=std::max(k+TURN+1, k+j-i- MAXLOOP-2);
 						
 						for (size_t l=j-1; l>=min_l; --l) {
+							assert(k-i+j-l-2<=MAXLOOP);
 							energy_t canl = ((up_array[j-1]>=(j-l-1)-1) | cank);
 							energy_t v_iloop_kl = INF & canl;
+							
 							v_iloop_kl = v_iloop_kl + V(k_mod,l) + E_IntLoop(k-i-1,j-l-1,ptype_closing,rtype[pair[S[k]][S[l]]],S1[i+1],S1[j-1],S1[k-1],S1[l+1],const_cast<paramT *>(params));
+							// v_iloop_kl = v_iloop_kl + V(k_mod,l) + ILoopE(S,S1,params,ptype_closing,i,j,k,l);
+
 							if ( v_iloop_kl < v_iloop) {
 								v_iloop = v_iloop_kl;
 								best_l=l;
@@ -1303,7 +1251,7 @@ main(int argc,char **argv) {
 
 	SparseMFEFold sparsemfefold(seq,!args_info.noGC_given,restricted);
 
-	if(args_info.dangles_given) sparsemfefold.params_->model_details.dangles = dangles;
+	if(args_info.dangles_given) sparsemfefold.params_->model_details.dangles = dangle_model;
 
 	// Make replicate mx array in linear space
 	cand_pos_t last_j_array[n+1] = {0};

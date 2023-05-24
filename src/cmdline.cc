@@ -1,14 +1,14 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include "cmdline.hh"
 #include <string.h>
+#include <getopt.h>
 
 #ifndef FIX_UNUSED
 #define FIX_UNUSED(X) (void) (X) /* avoid warnings for unused params */
 #endif
 
-#include <getopt.h>
-
-#include "cmdline.hh"
+std::string input_structure;
+std::string parameter_file; 
+int dangle_model;
 
 static char *package_name = 0;
 
@@ -33,8 +33,6 @@ const char *args_info_help[] = {
   
 };
 
-std::string input_structure;
-std::string parameter_file; 
 static void clear_given (struct args_info *args_info);
 static void clear_args (struct args_info *args_info);
 
@@ -355,7 +353,7 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
               &(local_args_info.dangles_given), optarg, 0, 0, ARG_NO,0, 0,"dangles", 'd',additional_error))
             goto failure;
 
-            dangles = strtol(optarg,NULL,10);
+            dangle_model = strtol(optarg,NULL,10);
         
           break;
 

@@ -1,4 +1,4 @@
-#include "trace_arrows.hh"
+#include "trace_arrow.hh"
 
 TraceArrows::TraceArrows(cand_pos_tu n)
     : n_(n),

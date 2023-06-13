@@ -11,7 +11,7 @@
 #include "base_types.hh"
 #include "cmdline.hh"
 #include "matrix.hh"
-#include "trace_arrows.hh"
+#include "trace_arrow.hh"
 #include <iostream>
 #include <iomanip>
 #include <vector>
@@ -209,11 +209,12 @@ energy_t E_ext_Stem(auto const& vij,auto const& vi1j,auto const& vij1,auto const
     if ((p_table[i] <-1 && p_table[j] <-1) || (p_table[i] == j && p_table[j] == i)) {
 				en = vij; // i j
 
-                base_type si1 = i>1 ? S[i-1] : -1;
-                base_type sj1 = j<n ? S[j+1] : -1;
 				if (en != INF) {
-					if (params->model_details.dangles == 2)
+					if (params->model_details.dangles == 2){
+						base_type si1 = i>1 ? S[i-1] : -1;
+                		base_type sj1 = j<n ? S[j+1] : -1;
                         en += vrna_E_ext_stem(tt, si1, sj1, params);
+					}
                     else{
                         en += vrna_E_ext_stem(tt, -1, -1, params);
 						d = 0;
@@ -428,7 +429,7 @@ energy_t E_MLStem(auto const& vij,auto const& vi1j,auto const& vij1,auto const& 
 		}
 	}
 	if(params->model_details.dangles == 1){
-		base_type mm5 = S[i], mm3 = S[j];
+		const base_type mm5 = S[i], mm3 = S[j];
 
 		if (((p_table[i+1] < -1 && p_table[j] < -1) || (p_table[i+1] == j)) && p_table[i] < 0) {
       		en = (j-i-1 >TURN) ? vi1j : INF; // i+1 j
@@ -1261,7 +1262,7 @@ main(int argc,char **argv) {
 	
 	cmdline_parser_free(&args_info);
 
-	std::cout << seq << std::endl;
+	// std::cout << seq << std::endl;
 	
 	detect_restricted_pairs(restricted,p_table,last_j_array,in_pair_array);
 
@@ -1281,7 +1282,6 @@ main(int argc,char **argv) {
 	smfe << std::setiosflags(std::ios::fixed) << std::setprecision(2) << mfe/100.0 ;
 
 	std::cout << structure << " ("<<smfe.str()<<")"<<std::endl;
-	
 	if (verbose) {
 		
 

@@ -82,7 +82,6 @@ set(vienna_SOURCE
     src/ViennaRNA/subopt.c
     src/ViennaRNA/unstructured_domains.c  
 )
-file(WRITE SparseRNAFolD.cpp "int main() { return 0; }")
 add_library(RNA STATIC ${vienna_SOURCE})
 # configure_file(RNA.pc.in RNA.pc @ONLY)
 

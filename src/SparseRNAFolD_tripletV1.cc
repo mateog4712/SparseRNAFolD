@@ -621,8 +621,31 @@ auto const recompute_WM(auto const& WM, auto const &CL, auto const& S, auto cons
 		for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>=i ; ++it ) {
 			size_t k = it->first;
 			paired += (p_table[k] == j);
-			auto const [vd,d] = decode(it->third);
-			energy_t vkjwm = vd + params->MLintern[2];
+			energy_t vkjwm = INF;
+			auto const [vv,d] = decode(it->third);
+			switch(d){
+					case 0:
+						ptype= pair[S[k]][S[j]];
+						vkjwm = vv + E_MLstem(ptype,-1,-1,params);
+						break;
+					case 1:
+						ptype= pair[S[k+1]][S[j]];
+						vkjwm = vv + E_MLstem(ptype,S[k],-1,params);
+						break;
+					case 2:
+						ptype= pair[S[k]][S[j-1]];
+						vkjwm = vv + E_MLstem(ptype,-1,S[j],params);
+						break;
+					case 3:
+						if(params->model_details.dangles == 1){
+							ptype= pair[S[k+1]][S[j-1]];
+							vkjwm = vv + E_MLstem(ptype,S[k],S[j],params);
+						}else{
+							ptype= pair[S[k]][S[j]];
+							vkjwm = vv + E_MLstem(ptype,S[k-1],S[j+1],params);
+						}
+						break;
+			}
 			bool can_pair = up_array[k-1] >= (k-i) ? true : false;
 			if(can_pair) wm = std::min( wm, static_cast<energy_t>(params->MLbase*(k-i)) + vkjwm );
 			wm = std::min( wm, temp[k-1]  + vkjwm );
@@ -670,8 +693,31 @@ auto const recompute_WM2(auto const& WM, auto const& WM2, auto const CL, auto co
 			
 			size_t k = it->first;
 			paired += (p_table[k] == j && p_table[j] == k);
-			auto const [vd,d] = decode(it->third);
-			energy_t vkjwm = vd + params->MLintern[2];
+			auto const [vv,d] = decode(it->third);
+			energy_t vkjwm = INF;
+			switch(d){
+					case 0:
+						ptype= pair[S[k]][S[j]];
+						vkjwm = vv + E_MLstem(ptype,-1,-1,params);
+						break;
+					case 1:
+						ptype= pair[S[k+1]][S[j]];
+						vkjwm = vv + E_MLstem(ptype,S[k],-1,params);
+						break;
+					case 2:
+						ptype= pair[S[k]][S[j-1]];
+						vkjwm = vv + E_MLstem(ptype,-1,S[j],params);
+						break;
+					case 3:
+						if(params->model_details.dangles == 1){
+							ptype= pair[S[k+1]][S[j-1]];
+							vkjwm = vv + E_MLstem(ptype,S[k],S[j],params);
+						}else{
+							ptype= pair[S[k]][S[j]];
+							vkjwm = vv + E_MLstem(ptype,S[k-1],S[j+1],params);
+						}
+						break;
+			}
 			wm2 = std::min( wm2, WM[k-1]  + vkjwm );
 		}
 		if(p_table[j]<0 && !paired) wm2 = std::min(wm2, temp[j-1] + params->MLbase);
@@ -758,52 +804,58 @@ void trace_W(auto const& seq, auto const& CL, auto const& cand_comp, auto &struc
 		trace_W(seq,CL,cand_comp,structure,params,S,S1,ta,W,WM,WM2,n,mark_candidates,i,j-1,p_table,up_array);
 		return;
 	}
+	size_t k=j+1;
 	size_t m = i;
 	size_t l = j; 
 	energy_t v=INF;
-	int dangle = 3;
 	// energy_t vv = INF;
 	energy_t w;
     // int d =4;
 	int ptype = 0;
 	for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>=i;++it ) {
-		size_t k = it->first;
-		auto const[vd,d] = decode(it->third);
-		energy_t vkjw = vd;
-		w = W[k-1] + vkjw;
-		if (W[j] == w) {
-		v =vd;
-		dangle = d;
-		m = k;
-		break;
-		}
-	}
-	size_t k = m;
-	switch(dangle){
+		k = it->first;
+		auto const[vv,d] = decode(it->third);
+		energy_t vkjw = INF;
+		switch(d){
+			case 0:
+				m = k;
+				l = j;
+				ptype = pair[S[k]][S[j]];
+				vkjw = vv + E_ExtLoop(ptype,-1,-1,params);
+				break;
 			case 1:
-				ptype = pair[S[m+1]][S[l]];
-				v = v - E_ExtLoop(ptype,S[m],-1,params);
-				++m;
+				m = k+1;
+				l=j;
+				ptype = pair[S[k+1]][S[l]];
+				vkjw = vv + E_ExtLoop(ptype,S[k],-1,params);
 				break;
 			case 2:
-				ptype = pair[S[m]][S[j-1]];
-				v = v - E_ExtLoop(ptype,-1,S[j],params);
+				m = k;
 				l = j-1;
+				ptype = pair[S[k]][S[j-1]];
+				vkjw = vv + E_ExtLoop(ptype,-1,S[j],params);
 				break;
 			case 3:
 				if(params->model_details.dangles == 1){
-					ptype = pair[S[m]][S[j-1]];
-					v = v - E_ExtLoop(ptype,S[m],S[j],params);
-					++m;
+					m = k+1;
 					l = j-1;
+					ptype = pair[S[k+1]][S[j-1]];
+					vkjw = vv + E_ExtLoop(ptype,S[k],S[j],params);
 				} else{
-					ptype = pair[S[m]][S[j]];
-					int sk1 = m>1 ? S[m] : -1;
+					m=k;
+					ptype = pair[S[k]][S[j]];
+					int sk1 = k>1 ? S[k-1] : -1;
             		int sj1 = j<n ? S[j+1] : -1;
-					v = v - E_ExtLoop(ptype,sk1,sj1,params);
+					vkjw = vv + E_ExtLoop(ptype,sk1,sj1,params);
 				}
 				break;  
     	}
+		w = W[k-1] + vkjw;
+		if (W[j] == w) {
+		v =vv;
+		break;
+		}
+	}
     
 	assert(i<=k && k<j);
 	assert(v<INF);
@@ -942,71 +994,58 @@ void trace_WM(auto const& seq, auto const& CL, auto const& cand_comp, auto &stru
 		trace_WM(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i,j-1,WM[j-1],p_table,up_array);
 		return;
 	}
-	energy_t v = INF;
-	energy_t wm_split = INF;
-	energy_t c_split = INF;
+	// energy_t vv = INF;
 	size_t m = i;
 	size_t l = j;
 	int ptype = 0;
-    int dangle = 3;
+    // int d = 3;
+    size_t k = j+1;
 	for ( auto it=CL[j].begin();CL[j].end() != it && it->first>=i;++it ) {
-		size_t k = it->first;
-		auto const[vd,d] = decode(it->third);
-		energy_t vkjwm = vd + params->MLintern[2];
-		
-		if ( e == WM[k-1] + vkjwm ) {
-		// no recomp, same i
-			wm_split = WM[k-1] + vkjwm;
-			m = k;
-			v = vkjwm;
-			dangle = d;
-			break;
-		} else if ( e == static_cast<energy_t>((k-i)*params->MLbase) + vkjwm ) {
-			c_split = static_cast<energy_t>((k-i)*params->MLbase) + vkjwm;
-			m = k;
-			v= vkjwm;
-			dangle = d;
-			break;
-		}
-	}
-	size_t k = m;
-	switch(dangle){
+		k = it->first;
+		auto const[vv,d] = decode(it->third);
+		energy_t vkjwm = INF;
+		switch(d){
 			case 0:
-				ptype = pair[S[m]][S[j]];
-				v = v - E_MLstem(ptype,-1,-1,params);
+				m = k;
+				l = j;
+				ptype = pair[S[k]][S[j]];
+				vkjwm = vv + E_MLstem(ptype,-1,-1,params);
 				break;
 			case 1:
-				ptype = pair[S[m+1]][S[l]];
-				v = v - E_MLstem(ptype,S[m],-1,params);
-				++m;
+				m = k+1;
+				l=j;
+				ptype = pair[S[k+1]][S[l]];
+				vkjwm = vv + E_MLstem(ptype,S[k],-1,params) + params->MLbase;
 				break;
 			case 2:
-				ptype = pair[S[m]][S[j-1]];
-				v = v - E_MLstem(ptype,-1,S[j],params);
+				m = k;
 				l = j-1;
+				ptype = pair[S[k]][S[j-1]];
+				vkjwm = vv + E_MLstem(ptype,-1,S[j],params) + params->MLbase;
 				break;
 			case 3:
 				if(params->model_details.dangles == 1){
-					ptype = pair[S[m+1]][S[j-1]];
-					v = v - E_MLstem(ptype,S[m],S[j],params);
-					++m;
+					m = k+1;
 					l = j-1;
+					ptype = pair[S[k+1]][S[j-1]];
+					vkjwm = vv + E_MLstem(ptype,S[k],S[j],params) + 2*params->MLbase;
 				} else{
-					ptype = pair[S[m]][S[j]];
-					v = v - E_MLstem(ptype,S[m-1],S[j+1],params);
+					m=k;
+					ptype = pair[S[k]][S[j]];
+					vkjwm = vv + E_MLstem(ptype,S[k-1],S[j+1],params);
 				}
 				break;  
     	}
-	if ( e == wm_split ) {
+		if ( e == WM[k-1] + vkjwm ) {
 		// no recomp, same i
 			trace_WM(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i,k-1,WM[k-1],p_table,up_array);
-			trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,m,l,v,p_table,up_array);
+			trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,m,l,vv,p_table,up_array);
 		return;
-		} else if ( e == c_split) {
-			trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,m,l,v,p_table,up_array);
+		} else if ( e == static_cast<energy_t>((k-i)*params->MLbase) + vkjwm ) {
+			trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,m,l,vv,p_table,up_array);
 			return;
 		}
-	
+	}
 	assert(false);
 }
 
@@ -1049,54 +1088,51 @@ void trace_WM2(auto const& seq, auto const& CL, auto const& cand_comp, auto &str
 	size_t m = i;
 	size_t l = j;
 	int ptype = 0;
-    energy_t v = INF;
-	energy_t wm2_split = INF;
-    int dangle = 3;
+    size_t k = j+1;
+    // energy_t vv = INF;
+    // int d = 4;
 	for ( auto it=CL[j].begin();CL[j].end() != it  && it->first>=i+TURN+1;++it ) {
-		size_t k = it->first;
-		auto const[vd,d] = decode(it->third);
-		energy_t vkjwm = vd + params->MLintern[2];
+		k = it->first;
+		auto const[vv,d] = decode(it->third);
+		energy_t vkjwm = INF;
+		switch(d){
+			case 0:
+				m = k;
+				l = j;
+				ptype = pair[S[k]][S[j]];
+				vkjwm = vv + E_MLstem(ptype,-1,-1,params);
+				break;
+			case 1:
+				m = k+1;
+				l=j;
+				ptype = pair[S[k+1]][S[l]];
+				vkjwm = vv + E_MLstem(ptype,S[k],-1,params) + params->MLbase;
+				break;
+			case 2:
+				m = k;
+				l = j-1;
+				ptype = pair[S[k]][S[j-1]];
+				vkjwm = vv + E_MLstem(ptype,-1,S[j],params) + params->MLbase;
+				break;
+			case 3:
+				if(params->model_details.dangles == 1){
+					m = k+1;
+					l = j-1;
+					ptype = pair[S[k+1]][S[j-1]];
+					vkjwm = vv + E_MLstem(ptype,S[k],S[j],params) + 2*params->MLbase;
+				} else{
+					m=k;
+					ptype = pair[S[k]][S[j]];
+					vkjwm = vv + E_MLstem(ptype,S[k-1],S[j+1],params);
+				}
+				break;  
+    	}
 		// printf("k is %lu and j is %lu and e is %d and WM[k-1] is %d and vkjwm is %d and wm2 is %d\n",k,j,e,WM[k-1],vkjwm,WM[k-1] + vkjwm);
 		if ( e == WM[k-1] + vkjwm ) {
-			dangle = d;
-			m = k;
-			wm2_split = WM[k-1] + vkjwm;
-			v = vkjwm;
-			break;
+			trace_WM(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i,k-1,WM[k-1],p_table,up_array);
+			trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,m,l,vv,p_table,up_array);
+			return;
 		}
-	}
-	size_t k = m;
-	switch(dangle){
-		case 0:
-			ptype = pair[S[m]][S[j]];
-			v = v - E_MLstem(ptype,-1,-1,params);
-			break;
-		case 1:
-			ptype = pair[S[m+1]][S[l]];
-			v = v - E_MLstem(ptype,S[m],-1,params);
-			++m;
-			break;
-		case 2:
-			ptype = pair[S[m]][S[j-1]];
-			v = v - E_MLstem(ptype,-1,S[j],params);
-			l = j-1;
-			break;
-		case 3:
-			if(params->model_details.dangles == 1){
-				ptype = pair[S[m+1]][S[j-1]];
-				v = v - E_MLstem(ptype,S[m],S[j],params);
-				++m;
-				l = j-1;
-			} else{
-				ptype = pair[S[m]][S[j]];
-				v = v - E_MLstem(ptype,S[m-1],S[j+1],params);
-			}
-			break;  
-    }
-	if ( e == wm2_split ) {
-		trace_WM(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i,k-1,WM[k-1],p_table,up_array);
-		trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,m,l,v,p_table,up_array);
-		return;
 	}
 	assert(false);
 }
@@ -1201,16 +1237,47 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 				// bool unpairedkj = (p_table[k]<-1 && p_table[j]<-1);
 				auto const [v,d] = decode(vald);
 				
-				
-				
+				energy_t vkjwm = INF;
+				energy_t vkjw = INF;
+				int ptype;
+				switch(d){
+					case 0:
+						ptype= pair[S[k]][S[j]];
+						vkjwm = v + E_MLstem(ptype,-1,-1,params);
+						vkjw = v + vrna_E_ext_stem(ptype, -1, -1, params);
+						break;
+					case 1:
+						ptype= pair[S[k+1]][S[j]];
+						vkjwm = v + E_MLstem(ptype,S[k],-1,params);
+						vkjw = v + vrna_E_ext_stem(ptype, S[k], -1, params);
+						break;
+					case 2:
+						ptype= pair[S[k]][S[j-1]];
+						vkjwm = v + E_MLstem(ptype,-1,S[j],params);
+						vkjw = v + vrna_E_ext_stem(ptype, -1, S[j], params);
+						break;
+					case 3:
+						if(params->model_details.dangles == 1){
+							ptype= pair[S[k+1]][S[j-1]];
+							vkjwm = v + E_MLstem(ptype,S[k],S[j],params);
+							vkjw = v + vrna_E_ext_stem(ptype, S[k], S[j], params);
+						}else{
+							ptype= pair[S[k]][S[j]];
+							int sk1 = k>1 ? S[k-1] : -1;
+							int sj1 = j<n ? S[j+1] : -1;
+							vkjwm = v + E_MLstem(ptype,sk1,sj1,params);
+							vkjw = v + vrna_E_ext_stem(ptype, sk1, sj1, params);
+						}
+						break;
+				}
 				// auto const [v_kjw,dw] = decode(val_w);
 				bool can_pair = up_array[k-1] >= (k-i) ? true: false;
-				const energy_t v_kj = v + params->MLintern[2];
-				wm_split = std::min( wm_split, WM[k-1] + v_kj );
-				if(can_pair) wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + v_kj );
-				wm2_split = std::min( wm2_split, WM[k-1] + v_kj);
+				
+				wm_split = std::min( wm_split, WM[k-1] + vkjwm );
+				if(can_pair) wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + vkjwm );
+				wm2_split = std::min( wm2_split, WM[k-1] + vkjwm );
 				// if(i==1 && j==82) printf("k is %lu and j is %lu and wsplit is %d and wk-1 is %d and vkjw is %d and d is %d\n",k,j,W[k-1] + vkjw,W[k-1],vkjw,d);
-				w_split = std::min( w_split, W[k-1] + v );
+				w_split = std::min( w_split, W[k-1] + vkjw );
 		
 				
 			}
@@ -1336,7 +1403,7 @@ energy_t fold(auto const& seq, auto &V, auto const& cand_comp, auto &CL, auto co
 			
 			if ( w_v < w_split || wm_v < wm_split || paired) {
 				int k_mod = k%(MAXLOOP+1);
-				register_candidate(CL, i, j,V(i_mod,j),encode(w_v,d));
+				register_candidate(CL, i, j,V(i_mod,j),encode(V(k_mod,l),d));
 				// always keep arrows starting from candidates
 				inc_source_ref_count(ta,i,j);
 			}		

@@ -84,10 +84,11 @@ static void print_help_common(void)
 	}
 }
 void cmdline_parser_print_help (void){
-  int i = 0;
+  
   print_help_common();
-  while (args_info_help[i])
-    printf("%s\n", args_info_help[i++]);
+  int i = 0;
+  int end = sizeof(args_info_help)/sizeof(args_info_help[0]);
+  while (i<end) printf("%s\n", args_info_help[i++]);
 }
 
 static void clear_given (struct args_info *args_info)

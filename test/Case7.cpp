@@ -23,7 +23,7 @@ using namespace std;
 
 void getResults(string program){
 
-string fileI = "../../output2/linearfold/results/" + program + ".txt";
+string fileI = "../output2/linearfold/results/" + program + ".txt";
 
 ifstream in(fileI);
 double f_measure = 0;
@@ -53,7 +53,8 @@ count+=1;
 f_measure/=count;
 sensitivity/=count;
 ppv/=count;
-string file = "../../output2/linearfold/results/" + program  + "O.txt";
+string file = "../output2/linearfold/results/" + program  + "O.txt";
+cout << file << endl;
 
 
 ofstream out(file,ofstream::app);
@@ -72,8 +73,8 @@ void runFmeasure(string program){
     string calcf;
     string calcfU;
     
-    calcf = "../../calculate_f_measure.txt";
-    calcfU = "../../calculate_f_measureU.pl";
+    calcf = "../Measurement/calculate_f_measure.txt";
+    calcfU = "../Measurement/calculate_f_measureU.pl";
     
    
     ifstream cf(calcf.c_str());
@@ -105,7 +106,7 @@ void runFmeasure(string program){
 
     // // Runs the updated perl file
     string command;
-     command = "perl ../../calculate_f_measureU.pl";
+     command = "perl ../Measurement/calculate_f_measureU.pl";
     
     system(command.c_str());
 
@@ -124,8 +125,8 @@ void runPerl(string program) {
     if(program == "rnasoft") i = 1;
     // Takes the converted perl file and opens it for reading and a new perl file for writing
     // When done as a perl file, the getline function messes up and skips lines
-    string bpseq = "../../bpseq.txt";
-    string bpseqU = "../../bpseqU.pl";
+    string bpseq = "../Measurement/bpseq.txt";
+    string bpseqU = "../Measurement/bpseqU.pl";
     ifstream bp(bpseq.c_str());
     ofstream bpU(bpseqU.c_str(), ofstream::trunc);
 
@@ -170,7 +171,7 @@ void runPerl(string program) {
     bp.close();
     bpU.close();
     // Run the updated perl file
-    string command = "perl ../../bpseqU.pl";
+    string command = "perl ../Measurement/bpseqU.pl";
     system(command.c_str());
     
 }
@@ -178,10 +179,10 @@ void runPerl(string program) {
 
 int main(int argc,char **argv) {
     
-    string program = "linear";
+    string program = "sparse2";
     // runPerl(program);
 
-    runFmeasure(program);
+    // runFmeasure(program);
     getResults(program);
 
 

@@ -16,10 +16,10 @@ set(sparseRNAfolD_SOURCE
     src/trace_arrow.cc 
 )
 
-set(test_SOURCE
-test/Case7.cpp 
-test/Test.cpp
-)
+# set(test_SOURCE
+# test/Case7.cpp 
+# test/Test.cpp
+# )
 
 set(constraints_SOURCE
     src/ViennaRNA/constraints/constraints.c
@@ -92,11 +92,11 @@ target_include_directories(RNA PRIVATE .)
 
 add_executable(SparseRNAFolD ${sparseRNAfolD_SOURCE})
 
-add_executable(tests ${test_SOURCE})
+# add_executable(tests ${test_SOURCE})
 
 target_link_libraries(SparseRNAFolD PRIVATE RNA)
 
-target_link_libraries(tests PRIVATE RNA)
+# target_link_libraries(tests PRIVATE RNA)
 
 
 include_directories(src)

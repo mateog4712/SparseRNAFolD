@@ -19,6 +19,8 @@
 #include <cstring>
 #include <string>
 #include <cassert>
+#include <sstream>
+
 
 extern "C" {
 #include "ViennaRNA/pair_mat.h"
@@ -1254,10 +1256,10 @@ main(int argc,char **argv) {
 	if(args_info.dangles_given) sparsemfefold.params_->model_details.dangles = dangle_model;
 
 	// Make replicate mx array in linear space
-	cand_pos_t last_j_array[n+1] = {0};
-	cand_pos_t in_pair_array[n+1] = {0};
-	cand_pos_t p_table[n+1] = {0};
-	cand_pos_t up_array[n+1] = {0};
+	cand_pos_t last_j_array[n+1];
+	cand_pos_t in_pair_array[n+1];
+	cand_pos_t p_table[n+1];
+	cand_pos_t up_array[n+1];
 	
 	cmdline_parser_free(&args_info);
 

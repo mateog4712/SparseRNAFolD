@@ -135,10 +135,10 @@ class SparseMFEFold {
 		}
 };
 
-void trace_V(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, const cand_pos_t& n, const bool& mark_candidates, cand_pos_t i, cand_pos_t j, energy_t e,const cand_pos_t* p_table, const cand_pos_t *up_array);
-void trace_W(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta, const std::vector<energy_t> & W, std::vector< energy_t > &WM, std::vector< energy_t > &WM2, const cand_pos_t& n, const bool& mark_candidates, cand_pos_t i, cand_pos_t j,const cand_pos_t* p_table, const cand_pos_t* up_array);
-void trace_WM(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params,const short* S, const short* S1, TraceArrows &ta, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, const cand_pos_t& n, const bool& mark_candidates, cand_pos_t i, cand_pos_t j, energy_t e,const cand_pos_t* p_table, const cand_pos_t *up_array) ;
-void trace_WM2(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, const cand_pos_t& n, const bool& mark_candidates,cand_pos_t i, cand_pos_t j,const cand_pos_t* p_table, const cand_pos_t *up_array);
+void trace_V(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, const cand_pos_t& n, const bool& mark_candidates, cand_pos_t i, cand_pos_t j, energy_t e,const std::vector<cand_pos_t>& p_table, const std::vector<cand_pos_t>& up_array);
+void trace_W(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta, const std::vector<energy_t> & W, std::vector< energy_t > &WM, std::vector< energy_t > &WM2, const cand_pos_t& n, const bool& mark_candidates, cand_pos_t i, cand_pos_t j,const std::vector<cand_pos_t>& p_table, const std::vector<cand_pos_t>& up_array);
+void trace_WM(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params,const short* S, const short* S1, TraceArrows &ta, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, const cand_pos_t& n, const bool& mark_candidates, cand_pos_t i, cand_pos_t j, energy_t e,const std::vector<cand_pos_t>& p_table, const std::vector<cand_pos_t>& up_array) ;
+void trace_WM2(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, const cand_pos_t& n, const bool& mark_candidates,cand_pos_t i, cand_pos_t j,const std::vector<cand_pos_t>& p_table, const std::vector<cand_pos_t>& up_array);
 
 bool evaluate_restriction(int i, int j, int32_t *last_j_array, int32_t *in_pair_array);
 
@@ -204,7 +204,7 @@ energy_t ILoopE(const short* S, const short* S1, const paramT* params, const pai
  * @param vij1 The V(i,j-1) energy
  * @param vi1j1 The V(i+1,j-1) energy
 */
-energy_t E_ext_Stem(const energy_t& vij,const energy_t& vi1j,const energy_t& vij1,const energy_t& vi1j1,const short* S, paramT* params, const cand_pos_t i,const cand_pos_t j, Dangle &d, cand_pos_t n, const cand_pos_t* p_table){
+energy_t E_ext_Stem(const energy_t& vij,const energy_t& vi1j,const energy_t& vij1,const energy_t& vi1j1,const short* S, paramT* params, const cand_pos_t i,const cand_pos_t j, Dangle &d, cand_pos_t n, const std::vector<cand_pos_t>& p_table){
 
 	energy_t e = INF,en = INF;
   	pair_type tt  = pair[S[i]][S[j]];
@@ -300,7 +300,7 @@ void rotate_arrays(std::vector<energy_t> &WM2, std::vector<energy_t> &dmli1, std
 * @param dmli1 Row of WM2 from one iteration ago
 * @param dmli2 Row of WM2 from two iterations ago 
 */
-energy_t E_MbLoop( const std::vector<energy_t>& dmli1, const std::vector<energy_t>& dmli2, const short* S, paramT* params, cand_pos_t i, cand_pos_t j, const cand_pos_t* p_table){
+energy_t E_MbLoop( const std::vector<energy_t>& dmli1, const std::vector<energy_t>& dmli2, const short* S, paramT* params, cand_pos_t i, cand_pos_t j, const std::vector<cand_pos_t>& p_table){
 
 	energy_t e = INF,en = INF;
   	pair_type tt  = pair[S[j]][S[i]];
@@ -409,7 +409,7 @@ energy_t E_MbLoop( const std::vector<energy_t>& dmli1, const std::vector<energy_
  * @param vij1 The V(i,j-1) energy
  * @param vi1j1 The V(i+1,j-1) energy
 */
-energy_t E_MLStem(const energy_t& vij,const energy_t& vi1j,const energy_t& vij1,const energy_t& vi1j1,const short* S, paramT* params,cand_pos_t i, cand_pos_t j,Dangle &d, const  cand_pos_t& n, const cand_pos_t* p_table){
+energy_t E_MLStem(const energy_t& vij,const energy_t& vi1j,const energy_t& vij1,const energy_t& vi1j1,const short* S, paramT* params,cand_pos_t i, cand_pos_t j,Dangle &d, const  cand_pos_t& n, const std::vector<cand_pos_t>& p_table){
 
 	energy_t e = INF,en=INF;
 
@@ -493,7 +493,7 @@ energy_t E_MLStem(const energy_t& vij,const energy_t& vi1j,const energy_t& vij1,
 * @param i Current i
 * @param max_j Current j
 */
-const std::vector<energy_t> recompute_WM(const std::vector<energy_t>& WM, const std::vector< cand_list_t > &CL, const short* S, paramT* params, const cand_pos_t& n, cand_pos_t i, cand_pos_t max_j, const cand_pos_t* p_table, const cand_pos_t* up_array) {
+const std::vector<energy_t> recompute_WM(const std::vector<energy_t>& WM, const std::vector< cand_list_t > &CL, const short* S, paramT* params, const cand_pos_t& n, cand_pos_t i, cand_pos_t max_j, const std::vector<cand_pos_t>& p_table, const std::vector<cand_pos_t>& up_array) {
 	assert(i>=1);
 	assert(max_j<=n_);
 	std::vector<energy_t> temp = WM;
@@ -526,7 +526,7 @@ const std::vector<energy_t> recompute_WM(const std::vector<energy_t>& WM, const 
 * @param i Current i
 * @param max_j Current j
 */
-const std::vector<energy_t> recompute_WM2(const std::vector<energy_t>& WM,const std::vector<energy_t>& WM2, const std::vector< cand_list_t > &CL, const short* S, paramT* params, const cand_pos_t& n, cand_pos_t i, cand_pos_t max_j, const cand_pos_t* p_table) {
+const std::vector<energy_t> recompute_WM2(const std::vector<energy_t>& WM,const std::vector<energy_t>& WM2, const std::vector< cand_list_t > &CL, const short* S, paramT* params, const cand_pos_t& n, cand_pos_t i, cand_pos_t max_j, const std::vector<cand_pos_t>& p_table) {
 	assert(i>=1);
 	assert(max_j<=n_);
 	std::vector<energy_t> temp = WM2;
@@ -572,7 +572,7 @@ bool is_candidate(const std::vector< cand_list_t >& CL,const SparseMFEFold::Cand
  * @param WM2ij1 The WM2 energy for the region [i,j-1]
  * @param WM2i1j1 The WM2 energy for the region [i+1,j-1]
 */
-void find_mb_dangle(const energy_t WM2ij,const energy_t WM2i1j,const energy_t WM2ij1,const energy_t WM2i1j1, paramT* params, const short* S, const cand_pos_t i, const cand_pos_t j, cand_pos_t &k, cand_pos_t &l,const cand_pos_t* p_table){
+void find_mb_dangle(const energy_t WM2ij,const energy_t WM2i1j,const energy_t WM2ij1,const energy_t WM2i1j1, paramT* params, const short* S, const cand_pos_t i, const cand_pos_t j, cand_pos_t &k, cand_pos_t &l,const std::vector<cand_pos_t>& p_table){
 
 	const pair_type tt = pair[S[j]][S[i]];
 	const energy_t e1 = WM2ij +  E_MLstem(tt, -1, -1, params);
@@ -609,7 +609,7 @@ void find_mb_dangle(const energy_t WM2ij,const energy_t WM2i1j,const energy_t WM
  * @param i row index
  * @param j column index
  */
-void trace_W(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta, const std::vector<energy_t> & W, std::vector< energy_t > &WM, std::vector< energy_t > &WM2, const cand_pos_t& n, const bool& mark_candidates, cand_pos_t i, cand_pos_t j,const cand_pos_t* p_table, const cand_pos_t* up_array) {
+void trace_W(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta, const std::vector<energy_t> & W, std::vector< energy_t > &WM, std::vector< energy_t > &WM2, const cand_pos_t& n, const bool& mark_candidates, cand_pos_t i, cand_pos_t j,const std::vector<cand_pos_t>& p_table, const std::vector<cand_pos_t>& up_array) {
 	if (i+TURN+1>=j) return;
 	// case j unpaired
 	if (W[j] == W[j-1]) {
@@ -679,7 +679,7 @@ void trace_W(const std::string& seq, const std::vector< cand_list_t >& CL, const
 * @param i row index
 * @param j column index
 */
-void trace_V(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, const cand_pos_t& n, const bool& mark_candidates, cand_pos_t i, cand_pos_t j, energy_t e,const cand_pos_t* p_table, const cand_pos_t *up_array){
+void trace_V(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, const cand_pos_t& n, const bool& mark_candidates, cand_pos_t i, cand_pos_t j, energy_t e,const std::vector<cand_pos_t>& p_table, const std::vector<cand_pos_t>& up_array){
 	assert( i+TURN+1<=j );
 	
 	if (mark_candidates && is_candidate(CL,cand_comp,i,j)) {
@@ -756,7 +756,7 @@ void trace_V(const std::string& seq, const std::vector< cand_list_t >& CL, const
 * @param j column index 
 * @param e energy in WM(i,j) 
 */
-void trace_WM(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params,const short* S, const short* S1, TraceArrows &ta, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, const cand_pos_t& n, const bool& mark_candidates, cand_pos_t i, cand_pos_t j, energy_t e,const cand_pos_t* p_table, const cand_pos_t *up_array){
+void trace_WM(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params,const short* S, const short* S1, TraceArrows &ta, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, const cand_pos_t& n, const bool& mark_candidates, cand_pos_t i, cand_pos_t j, energy_t e,const std::vector<cand_pos_t>& p_table, const std::vector<cand_pos_t>& up_array){
 
 	if (i+TURN+1>j) {return;}
 
@@ -834,7 +834,7 @@ void trace_WM(const std::string& seq, const std::vector< cand_list_t >& CL, cons
 * @param i row index
 * @param j column index
  */
-void trace_WM2(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, const cand_pos_t& n, const bool& mark_candidates,cand_pos_t i, cand_pos_t j,const cand_pos_t* p_table, const cand_pos_t *up_array){
+void trace_WM2(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, const cand_pos_t& n, const bool& mark_candidates,cand_pos_t i, cand_pos_t j,const std::vector<cand_pos_t>& p_table, const std::vector<cand_pos_t>& up_array){
 
 	if (i+2*TURN+3>j) {return;}
 	const energy_t e = WM2[j];
@@ -904,7 +904,7 @@ void trace_WM2(const std::string& seq, const std::vector< cand_list_t >& CL, con
 * pre: row 1 of matrix W is computed
 * @return mfe structure (reference)
 */
-const std::string & trace_back(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1,TraceArrows &ta, const std::vector<energy_t>& W, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, const cand_pos_t& n,const cand_pos_t* p_table,const cand_pos_t *up_array, const bool& mark_candidates=false) {
+const std::string & trace_back(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1,TraceArrows &ta, const std::vector<energy_t>& W, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, const cand_pos_t& n,const std::vector<cand_pos_t>& p_table,const std::vector<cand_pos_t>& up_array, const bool& mark_candidates=false) {
 
 	structure.resize(n+1,'.');
 
@@ -939,7 +939,7 @@ void register_candidate(std::vector<cand_list_t> &CL, cand_pos_t const& i, cand_
  * @param in_pair_array Restricted array
  * @return whether i and j can be non INF 
  */
-bool evaluate_restriction(cand_pos_t i, cand_pos_t j, const cand_pos_t *last_j_array, const cand_pos_t *in_pair_array){
+bool evaluate_restriction(cand_pos_t i, cand_pos_t j, const std::vector<cand_pos_t>& last_j_array, const std::vector<cand_pos_t>& in_pair_array){
 	bool evaluate = 1;
 	// if(in_pair_array[i]>in_pair_array[j]) evaluate = 0;
 	evaluate &= ~(in_pair_array[i]>in_pair_array[j]);
@@ -954,7 +954,7 @@ bool evaluate_restriction(cand_pos_t i, cand_pos_t j, const cand_pos_t *last_j_a
 /**
  * @brief Determines the MFE energy for a given sequence
 */
-energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const SparseMFEFold::Cand_comp& cand_comp, std::vector<cand_list_t> &CL, const short* S, const short* S1, paramT* params, TraceArrows &ta, std::vector<energy_t> &W, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, std::vector<energy_t> &dmli1, std::vector<energy_t> &dmli2, const cand_pos_t& n, const bool& garbage_collect,const cand_pos_t*p_table,const cand_pos_t*last_j_array,const cand_pos_t*in_pair_array,const cand_pos_t*up_array) {
+energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const SparseMFEFold::Cand_comp& cand_comp, std::vector<cand_list_t> &CL, const short* S, const short* S1, paramT* params, TraceArrows &ta, std::vector<energy_t> &W, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, std::vector<energy_t> &dmli1, std::vector<energy_t> &dmli2, const cand_pos_t& n, const bool& garbage_collect,const std::vector<cand_pos_t>& p_table,const std::vector<cand_pos_t>& last_j_array,const std::vector<cand_pos_t>& in_pair_array,const std::vector<cand_pos_t>& up_array) {
 	Dangle d = 3;
     if(params->model_details.dangles == 0 || params->model_details.dangles == 1) d = 0;
     
@@ -1146,7 +1146,7 @@ energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const Sparse
  * @param last_j_array Restricted Array
  * @param in_pair_array Restricted Array
  */
-void detect_restricted_pairs(const std::string &structure, cand_pos_t *p_table, cand_pos_t *last_j_array, cand_pos_t *in_pair_array){
+void detect_restricted_pairs(const std::string &structure, std::vector<cand_pos_t> &p_table, std::vector<cand_pos_t> &last_j_array, std::vector<cand_pos_t> &in_pair_array){
 	cand_pos_t i, j, count = 0, length = structure.length(),last_j=length;
 	std::vector<cand_pos_t>  pairs;
 	pairs.push_back(length);
@@ -1256,10 +1256,15 @@ main(int argc,char **argv) {
 	if(args_info.dangles_given) sparsemfefold.params_->model_details.dangles = dangle_model;
 
 	// Make replicate mx array in linear space
-	cand_pos_t last_j_array[n+1];
-	cand_pos_t in_pair_array[n+1];
-	cand_pos_t p_table[n+1];
-	cand_pos_t up_array[n+1];
+	std::vector<cand_pos_t> last_j_array;
+	std::vector<cand_pos_t> in_pair_array;
+	std::vector<cand_pos_t> p_table;
+	std::vector<cand_pos_t> up_array;
+
+	last_j_array.resize(n+1,0);
+	in_pair_array.resize(n+1,0);
+	p_table.resize(n+1,0);
+	up_array.resize(n+1,0);
 	
 	cmdline_parser_free(&args_info);
 

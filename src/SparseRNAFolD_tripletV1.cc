@@ -76,8 +76,8 @@ V(i,j) + b  < min {
 #include <cassert>
 #include <numeric>
 
-#include "base.hh"
-#include "trace_arrows.hh"
+#include "base_types.hh"
+#include "trace_arrow.hh"
 
 extern "C" {
 #include "ViennaRNA/pair_mat.h"
@@ -91,7 +91,7 @@ extern "C" {
 #include <fstream>
 
 
-typedef unsigned short int cand_pos_t;
+// typedef unsigned short int cand_pos_t;
 
 
 struct triplet
@@ -1553,7 +1553,7 @@ main(int argc,char **argv) {
 
 	SparseMFEFold sparsemfefold(seq,!args_info.noGC_given,restricted);
 
-	if(args_info.dangles_given) sparsemfefold.params_->model_details.dangles = dangles;
+	if(args_info.dangles_given) sparsemfefold.params_->model_details.dangles = dangle_model;
 
 	// Make replicate mx array in linear space
 	int32_t last_j_array[n+1] = {0};

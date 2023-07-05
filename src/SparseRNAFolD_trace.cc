@@ -1416,7 +1416,7 @@ main(int argc,char **argv) {
 
 	SparseMFEFold sparsemfefold(seq,!args_info.noGC_given,restricted);
 
-	if(args_info.dangles_given) sparsemfefold.params_->model_details.dangles = dangles;
+	if(args_info.dangles_given) sparsemfefold.params_->model_details.dangles = dangle_model;
 
 	// Make replicate mx array in linear space
 	int last_j_array[n+1] = {0};

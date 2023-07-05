@@ -28,33 +28,27 @@ extern "C" {
 #include "ViennaRNA/params/io.h"
 }
 
-// New Candidate structure
-struct quatret
+struct triplet
 {
     cand_pos_t first; 
     energy_t second;
     energy_t third;
-	energy_t fourth;
-	quatret(){
+	triplet(){
 		first = 1;
 		second = 2;
 		third = 3;
-		fourth = 4;
 	}
-	quatret(cand_pos_t x, energy_t y , energy_t z,energy_t w){
+	triplet(cand_pos_t x, energy_t y , energy_t z){
 		first = x;
 		second = y;
 		third = z;
-		fourth = w;
 	}
 };
 
-typedef quatret cand_entry_t;
+typedef triplet cand_entry_t;
 typedef std::vector< cand_entry_t > cand_list_t;
 
 energy_t ILoopE(const short* S, const short* S1, const paramT* params, const pair_type& ptype_closing,const cand_pos_t &i,const cand_pos_t &j,const cand_pos_t &k,const cand_pos_t &l);
-
-class SparseMFEFold;
 
 /**
 * Space efficient sparsification of Zuker-type RNA folding with
@@ -62,6 +56,7 @@ class SparseMFEFold;
 * programming recursions and the trace-back.
 */
 class SparseMFEFold {
+
 	public:
 		std::string seq_;
 		cand_pos_t n_;
@@ -88,15 +83,18 @@ class SparseMFEFold {
 		bool mark_candidates_;
 
 
-		TraceArrows ta_;		
+		TraceArrows ta_;
 		std::vector< cand_list_t > CL_;	
 
 		// compare candidate list entries by keys (left index i) in descending order
 		struct Cand_comp{
-		bool operator ()(const cand_entry_t &x, size_t y) const {
-			return x.first > y;
-		}
+			bool operator ()(const cand_entry_t &x, size_t y) const {
+				return x.first > y;
+			}
 		} cand_comp;
+
+		
+
 
 		SparseMFEFold(const std::string &seq, bool garbage_collect, std::string restricted)
 		: seq_(seq),n_(seq.length()),params_(scale_parameters()),ta_(n_),garbage_collect_(garbage_collect){
@@ -175,25 +173,6 @@ energy_t ILoopE(const short* S, const short* S1, const paramT* params, const pai
 }
 
 /**
- * @brief Encodes the dangle type into the energy by shifting the energy two bits to the left and putting the dangle.
- * Dangles has 4 possible values: 00, 01, 10, 11, for no dangle, 5' dangle, 3' dangle, and 53' dangle, respectively.
- * 
- * @param e The energy being shifted. In practice, W(i,j) or WM(i,j)
- * @param d The type of dangle.
-*/
-// energy_t encode(energy_t e, Dangle d){
-//     return (e << 2) | d;
-// }
-/**
- * @brief The complement to encode. This returns the energy and dangle, respectively, in a tuple format
- * 
- * @param enc The encoded energy 
-*/
-// std::pair<energy_t,Dangle> decode(energy_t enc){
-//     return std::make_pair((enc >> 2), (enc & 3));
-// }
-
-/**
  * @brief Gives the W(i,j) energy. The type of dangle model being used affects this energy. 
  * The type of dangle is also changed to reflect this.
  * 
@@ -222,7 +201,6 @@ energy_t E_ext_Stem(const energy_t& vij,const energy_t& vi1j,const energy_t& vij
 					}
 
                     e = MIN2(e, en);
-					
 				}
 
 	}
@@ -493,16 +471,16 @@ energy_t E_MLStem(const energy_t& vij,const energy_t& vi1j,const energy_t& vij1,
 */
 const std::vector<energy_t> recompute_WM(const std::vector<energy_t>& WM, const std::vector< cand_list_t > &CL, const short* S, paramT* params, const cand_pos_t& n, cand_pos_t i, cand_pos_t max_j, const std::vector<cand_pos_t>& p_table, const std::vector<cand_pos_t>& up_array) {
 	assert(i>=1);
-	assert(max_j<=n_);
+	assert(max_j<=n);
 	std::vector<energy_t> temp = WM;
 
-	for ( cand_pos_t j=i-1; j<=std::min(i+TURN,max_j); j++ ) { temp[j]=INF; }
+	for ( size_t j=i-1; j<=std::min(i+TURN,max_j); j++ ) { temp[j]=INF; }
 	
-	for ( cand_pos_t j=i+TURN+1; j<=max_j; j++ ) {
-		energy_t wm = INF;
+	for ( size_t j=i+TURN+1; j<=max_j; j++ ) {
+		energy_t wm = INF;		
 		for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>=i ; ++it ) {
 			cand_pos_t k = it->first;
-			energy_t v_kj = it->third >> 2;
+			energy_t v_kj = (it->third >> 2) + params->MLintern[2];
 
 			bool can_pair = up_array[k-1] >= (k-i);
 			if(can_pair) wm = std::min( wm, static_cast<energy_t>(params->MLbase*(k-i)) + v_kj );
@@ -526,19 +504,18 @@ const std::vector<energy_t> recompute_WM(const std::vector<energy_t>& WM, const 
 */
 const std::vector<energy_t> recompute_WM2(const std::vector<energy_t>& WM,const std::vector<energy_t>& WM2, const std::vector< cand_list_t > &CL, const short* S, paramT* params, const cand_pos_t& n, cand_pos_t i, cand_pos_t max_j, const std::vector<cand_pos_t>& p_table) {
 	assert(i>=1);
-	assert(max_j<=n_);
+	assert(max_j<= n);
 	std::vector<energy_t> temp = WM2;
 
-	for ( cand_pos_t j=i-1; j<=std::min(i+2*TURN+2,max_j); j++ ) { temp[j]=INF; }
+	for ( cand_pos_t j=i-1; j<=std::min(i+TURN,max_j); j++ ) { temp[j]=INF; }
 
-	for ( cand_pos_t j=i+2*TURN+3; j<=max_j; j++ ) {
+	for ( cand_pos_t j=i+TURN+1; j<=max_j; j++ ) {
 		energy_t wm2 = INF;
 		for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>i+TURN+1 ; ++it ) {
 			
 			cand_pos_t k = it->first;
-			energy_t v_kj = it->third >> 2;
-			
-			wm2 = std::min( wm2, WM[k-1]  + v_kj );
+			energy_t v_kj = (it->third >> 2) + params->MLintern[2];
+			wm2 = std::min( wm2, WM[k-1]  + v_kj);
 		}
 		if(p_table[j]<0) wm2 = std::min(wm2, temp[j-1] + params->MLbase);
 		temp[j] = wm2;
@@ -607,6 +584,7 @@ void find_mb_dangle(const energy_t WM2ij,const energy_t WM2i1j,const energy_t WM
  * @param j column index
  */
 void trace_W(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta, const std::vector<energy_t> & W, std::vector< energy_t > &WM, std::vector< energy_t > &WM2, const cand_pos_t& n, const bool& mark_candidates, cand_pos_t i, cand_pos_t j,const std::vector<cand_pos_t>& p_table, const std::vector<cand_pos_t>& up_array) {
+
 	if (i+TURN+1>=j) return;
 	// case j unpaired
 	if (W[j] == W[j-1]) {
@@ -617,49 +595,47 @@ void trace_W(const std::string& seq, const std::vector< cand_list_t >& CL, const
 	energy_t v=INF;
 	energy_t w;
     Dangle dangle =3;
-	energy_t vk = INF;
 	for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>=i;++it ) {
 		m = it->first;
-		energy_t v_kj = it->fourth >> 2;
-		Dangle d = it->fourth & 3;
+		energy_t v_kj = it->third >> 2;
+		Dangle d = it->third & 3;
 		w = W[m-1] + v_kj;
+
 		if (W[j] == w) {
-		v =it->second;
-        dangle = d;
-		vk = v_kj;
+		v =v_kj;
+		dangle = d;
 		break;
 		}
 	}
 	cand_pos_t k=m;
 	cand_pos_t l=j;
 	pair_type ptype = 0;
-    switch(dangle){
-		case 0:
-			ptype = pair[S[k]][S[l]];
-			v = vk - E_ExtLoop(ptype,-1,-1,params);
-			break;
-        case 1:
-			
-            k=m+1;
-			ptype = pair[S[k]][S[l]];
-			v = vk - E_ExtLoop(ptype,S[m],-1,params);
-            break;
-        case 2:
-            l=j-1;
-			ptype = pair[S[k]][S[l]];
-			v = vk - E_ExtLoop(ptype,-1,S[j],params);
-            break;
-        case 3:
-            if(params->model_details.dangles == 1){
-                k=m+1;
-                l=j-1;
+	switch(dangle){
+			case 1:
+				++k;
 				ptype = pair[S[k]][S[l]];
-				v = vk - E_ExtLoop(ptype,S[m],S[j],params);
-            }
-            break;
-
-        
-    }
+				v = v - E_ExtLoop(ptype,S[m],-1,params);
+				break;
+			case 2:
+				--l;
+				ptype = pair[S[k]][S[l]];
+				v = v - E_ExtLoop(ptype,-1,S[j],params);
+				break;
+			case 3:
+				if(params->model_details.dangles == 1){
+					++k;
+					--l;
+					ptype = pair[S[k]][S[l]];
+					v = v - E_ExtLoop(ptype,S[m],S[j],params);
+				} else{
+					ptype = pair[S[k]][S[l]];
+					int sk1 = k>1 ? S[k-1] : -1;
+            		int sj1 = l<n ? S[l+1] : -1;
+					v = v - E_ExtLoop(ptype,sk1,sj1,params);
+				}
+				break;  
+    	}
+    
 	assert(i<=m && m<j);
 	assert(v<INF);
 	// don't recompute W, since i is not changed
@@ -677,6 +653,8 @@ void trace_W(const std::string& seq, const std::vector< cand_list_t >& CL, const
 */
 void trace_V(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, const cand_pos_t& n, const bool& mark_candidates, cand_pos_t i, cand_pos_t j, energy_t e,const std::vector<cand_pos_t>& p_table, const std::vector<cand_pos_t>& up_array){
 	assert( i+TURN+1<=j );
+	assert( j<=n );
+	
 	
 	if (mark_candidates && is_candidate(CL,cand_comp,i,j)) {
 		structure[i]='{';
@@ -686,6 +664,7 @@ void trace_V(const std::string& seq, const std::vector< cand_list_t >& CL, const
 		structure[j]=')';
 	}
 	const pair_type ptype_closing = pair[S[i]][S[j]];
+	
 	if (exists_trace_arrow_from(ta,i,j)) {
 		
 		const TraceArrow &arrow = trace_arrow_from(ta,i,j);
@@ -703,9 +682,8 @@ void trace_V(const std::string& seq, const std::vector< cand_list_t >& CL, const
 		// try to trace back to a candidate: (still) interior loop case
 		cand_pos_t l_min = std::max(i,j-31);
 		for ( cand_pos_t l=j-1; l>l_min; l--) {
-			for ( auto it=CL[l].begin(); CL[l].end()!=it && it->first>i; ++it ) {
+			for ( auto it=CL[l].begin(); CL[l].end()!=it && it->first>i && it->first-i<32; ++it ) {
 				const cand_pos_t k=it->first;
-				if(k-i > 31) continue;
 				// if (  e == it->second + ILoopE(S,S1,params,ptype_closing,i,j,k,l) ) {
 				if (  e == it->second + E_IntLoop(k-i-1,j-l-1,ptype_closing,rtype[pair[S[k]][S[l]]],S1[i+1],S1[j-1],S1[k-1],S1[l+1],const_cast<paramT *>(params)) ) {
 					trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,k,l,it->second,p_table,up_array);
@@ -714,7 +692,7 @@ void trace_V(const std::string& seq, const std::vector< cand_list_t >& CL, const
 			}
 		}
 	}
-	// is it a hairpin?
+	// is this a hairpin?
 	if ( e == HairpinE(seq,S,S1,params,i,j) ) {
 		return;
 	}
@@ -738,7 +716,6 @@ void trace_V(const std::string& seq, const std::vector< cand_list_t >& CL, const
 			WM2 = temp4;
 		}
 	}
-
 	trace_WM2(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,k,l,p_table,up_array);
 }
 
@@ -752,7 +729,6 @@ void trace_V(const std::string& seq, const std::vector< cand_list_t >& CL, const
 * @param e energy in WM(i,j) 
 */
 void trace_WM(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params,const short* S, const short* S1, TraceArrows &ta, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, const cand_pos_t& n, const bool& mark_candidates, cand_pos_t i, cand_pos_t j, energy_t e,const std::vector<cand_pos_t>& p_table, const std::vector<cand_pos_t>& up_array){
-
 	if (i+TURN+1>j) {return;}
 
 	if ( e == WM[j-1] + params->MLbase ) {
@@ -760,64 +736,69 @@ void trace_WM(const std::string& seq, const std::vector< cand_list_t >& CL, cons
 		return;
 	}
 	energy_t v = INF;
-    energy_t vk = INF;
+	energy_t wm_split = INF;
+	energy_t c_split = INF;
+	size_t m = i;
     Dangle dangle = 3;
-    cand_pos_t m = j+1;
 	for ( auto it=CL[j].begin();CL[j].end() != it && it->first>=i;++it ) {
 		m = it->first;
-		// auto const [v_kj,d] = decode(it->third);
-		energy_t v_kj = it->third >> 2;
+		energy_t v_kj = (it->third >> 2) + params->MLintern[2];
 		Dangle d = it->third & 3;
-		if ( e == WM[m-1] + v_kj ) {
-            dangle = d;
-			vk = v_kj;
-			v = it->second;
-			// no recomp, same i
-		    break;
-		} else if ( e == static_cast<energy_t>((m-i)*params->MLbase) + v_kj ) {
-            dangle = d;
-			vk = v_kj;
-			v = it->second;
-		    break;
+		
+		if ( e == WM[m-1] + v_kj) {
+		// no recomp, same i
+			wm_split = WM[m-1] + v_kj;
+			v = v_kj;
+			dangle = d;
+			break;
+		} else if ( e == static_cast<energy_t>((m-i)*params->MLbase) + v_kj) {
+			c_split = static_cast<energy_t>((m-i)*params->MLbase) + v_kj;
+			v= v_kj;
+			dangle = d;
+			break;
 		}
 	}
 	cand_pos_t k = m;
 	cand_pos_t l = j;
 	pair_type ptype = 0;
-    switch(dangle){
-		case 0:
-			ptype= pair[S[k]][S[l]];
-			v = vk - E_MLstem(ptype,-1,-1,params);
-			break;
-        case 1:
-            k=m+1;
-			ptype= pair[S[k]][S[l]];
-			v = vk - E_MLstem(ptype,S[m],-1,params) - params->MLbase;
-            break;
-        case 2:
-            l=j-1;
-			ptype= pair[S[k]][S[l]];
-			v = vk - E_MLstem(ptype,-1,S[j],params) - params->MLbase;
-            break;
-        case 3:
-			if(params->model_details.dangles == 1){
-				k=m+1;
-				l=j-1;
+	switch(dangle){
+			case 0:
 				ptype= pair[S[k]][S[l]];
-				v = vk - E_MLstem(ptype,S[m],S[j],params) - 2*params->MLbase;
-			}
-            break;
-    }   
+				v = v - E_MLstem(ptype,-1,-1,params);
+				break;
+			case 1:
+				++k;
+				ptype = pair[S[k]][S[l]];
+				v = v - E_MLstem(ptype,S[m],-1,params) - params->MLbase;
+				break;
+			case 2:
+				--l;
+				ptype = pair[S[k]][S[l]];
+				v = v - E_MLstem(ptype,-1,S[j],params) - params->MLbase;
+				break;
+			case 3:
+				if(params->model_details.dangles == 1){
+					++k;
+					--l;
+					ptype = pair[S[k]][S[l]];
+					v = v - E_MLstem(ptype,S[m],S[j],params) - 2*params->MLbase;
+				} else{
+					ptype = pair[S[k]][S[l]];
+					v = v - E_MLstem(ptype,S[k-1],S[l+1],params);
+				}
+				break;  
+    }
 
-    if ( e == WM[m-1] + vk ) {
+	if ( e == wm_split ) {
 		// no recomp, same i
-		trace_WM(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i,m-1,WM[m-1],p_table,up_array);
+		trace_WM(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i,m-1,WM[k-1],p_table,up_array);
 		trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,k,l,v,p_table,up_array);
 		return;
-	} else if ( e == static_cast<energy_t>((k-i)*params->MLbase) + vk ) {
+	} else if ( e == c_split) {
 		trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,k,l,v,p_table,up_array);
 		return;
 	}
+	
 	assert(false);
 }
 
@@ -830,10 +811,8 @@ void trace_WM(const std::string& seq, const std::vector< cand_list_t >& CL, cons
 * @param j column index
  */
 void trace_WM2(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, const cand_pos_t& n, const bool& mark_candidates,cand_pos_t i, cand_pos_t j,const std::vector<cand_pos_t>& p_table, const std::vector<cand_pos_t>& up_array){
-
 	if (i+2*TURN+3>j) {return;}
 	const energy_t e = WM2[j];
-
 	// case j unpaired
 	if ( e == WM2[j-1] + params->MLbase ) {
 		
@@ -841,54 +820,54 @@ void trace_WM2(const std::string& seq, const std::vector< cand_list_t >& CL, con
 		trace_WM2(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i,j-1,p_table,up_array);
 		return;
 	}
-
-    cand_pos_t m = j+1;
+	size_t m = i;
     energy_t v = INF;
-    energy_t vk = INF;
+	energy_t wm2_split = INF;
     Dangle dangle = 3;
+
 	for ( auto it=CL[j].begin();CL[j].end() != it  && it->first>=i+TURN+1;++it ) {
 		m = it->first;
-		
-		energy_t v_kj = it->third >> 2;
+		energy_t v_kj = (it->third >> 2) + params->MLintern[2];
 		Dangle d = it->third & 3;
-		if (e == WM[m-1] + v_kj) {
-			vk = v_kj;
-            dangle = d;
-			v = it->second;
+		if ( e == WM[m-1] + v_kj) {
+			dangle = d;
+			wm2_split = WM[m-1] + v_kj;
+			v = v_kj;
 			break;
 		}
 	}
 	cand_pos_t k = m;
 	cand_pos_t l = j;
 	pair_type ptype = 0;
-    switch(dangle){
+	switch(dangle){
 		case 0:
 			ptype= pair[S[k]][S[l]];
-			v = vk - E_MLstem(ptype,-1,-1,params);
+			v = v - E_MLstem(ptype,-1,-1,params);
 			break;
-        case 1:
-            k=m+1;
-			ptype= pair[S[k]][S[l]];
-			v = vk - E_MLstem(ptype,S[m],-1,params)-params->MLbase;
-            break;
-        case 2:
-            l=j-1;
-			ptype= pair[S[k]][S[l]];
-			v = vk - E_MLstem(ptype,-1,S[j],params)-params->MLbase;
-            break;
-        case 3:
+		case 1:
+			++k;
+			ptype = pair[S[k]][S[l]];
+			v = v - E_MLstem(ptype,S[m],-1,params) -params->MLbase;
+			break;
+		case 2:
+			--l;
+			ptype = pair[S[k]][S[l]];
+			v = v - E_MLstem(ptype,-1,S[j],params) -params->MLbase;
+			break;
+		case 3:
 			if(params->model_details.dangles == 1){
-				k=m+1;
-				l=j-1;
-				ptype= pair[S[k]][S[l]];
-				v = vk - E_MLstem(ptype,S[m],S[j],params)-2*params->MLbase;
+				++k;
+				--l;
+				ptype = pair[S[k]][S[l]];
+				v = v - E_MLstem(ptype,S[m],S[j],params) -2*params->MLbase;
+			} else{
+				ptype = pair[S[k]][S[k]];
+				v = v - E_MLstem(ptype,S[k-1],S[l+1],params);
 			}
-            break;
+			break;  
     }
-    
-
-    if ( e == WM[m-1] + vk ) {
-		trace_WM(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i,m-1,WM[m-1],p_table,up_array);
+	if ( e == wm2_split ) {
+		trace_WM(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i,m-1,WM[k-1],p_table,up_array);
 		trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,k,l,v,p_table,up_array);
 		return;
 	}
@@ -918,10 +897,10 @@ const std::string & trace_back(const std::string& seq, const std::vector< cand_l
 * @param wmij energy at WM(i,j)
 * @param wij energy at W(i,j)
 */
-void register_candidate(std::vector<cand_list_t> &CL, cand_pos_t const& i, cand_pos_t const& j, energy_t const& e,energy_t const& wmij,energy_t const& wij) {
+void register_candidate(std::vector<cand_list_t> &CL, cand_pos_t const& i, cand_pos_t const& j, energy_t const& e,energy_t const& e_d) {
 	assert(i<=j+TURN+1);
 	
-	CL[j].push_back( cand_entry_t(i,e,wmij,wij) );
+	CL[j].push_back( cand_entry_t(i,e,e_d) );
 }
 
 /**
@@ -946,9 +925,6 @@ bool evaluate_restriction(cand_pos_t i, cand_pos_t j, const std::vector<cand_pos
 	return evaluate;
 }
 
-/**
- * @brief Determines the MFE energy for a given sequence
-*/
 energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const SparseMFEFold::Cand_comp& cand_comp, std::vector<cand_list_t> &CL, const short* S, const short* S1, paramT* params, TraceArrows &ta, std::vector<energy_t> &W, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, std::vector<energy_t> &dmli1, std::vector<energy_t> &dmli2, const cand_pos_t& n, const bool& garbage_collect,const std::vector<cand_pos_t>& p_table,const std::vector<cand_pos_t>& last_j_array,const std::vector<cand_pos_t>& in_pair_array,const std::vector<cand_pos_t>& up_array) {
 	Dangle d = 3;
     if(params->model_details.dangles == 0 || params->model_details.dangles == 1) d = 0;
@@ -967,19 +943,20 @@ energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const Sparse
 				const cand_pos_t k=it->first;
 				// Decode the energies
 				const energy_t v_kj = it->third >> 2;
-				const energy_t v_kjw = it->fourth >> 2;
-
+				
 				const bool can_pair = up_array[k-1] >= (k-i);
 				
-				wm_split = std::min( wm_split, WM[k-1] + v_kj );
-				if(can_pair) wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + v_kj );
-				wm2_split = std::min( wm2_split, WM[k-1] + v_kj );
-				w_split = std::min( w_split, W[k-1] + v_kjw );		
+				wm_split = std::min( wm_split, WM[k-1] + v_kj + params->MLintern[2]);
+				if(can_pair) wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + v_kj + params->MLintern[2]);
+				wm2_split = std::min( wm2_split, WM[k-1] + v_kj + params->MLintern[2]);
+				w_split = std::min( w_split, W[k-1] + v_kj);
+		
 				
 			}
 			if(p_table[j]<0) w_split = std::min(w_split,W[j-1]);
 			if(p_table[j]<0) wm2_split = std::min( wm2_split, WM2[j-1] + params->MLbase );
 			if(p_table[j]<0) wm_split = std::min( wm_split, WM[j-1] + params->MLbase );
+			
 			
 			energy_t w  = w_split; // entry of W w/o contribution of V
 			energy_t wm = wm_split; // entry of WM w/o contribution of V
@@ -1055,16 +1032,13 @@ energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const Sparse
 				V(i_mod,j) = v;
 			} else {
 				V(i_mod,j) = INF;
-			} // end if (i,j form a canonical base pair)			
+			} // end if (i,j form a canonical base pair)
 
  			cand_pos_t ip1_mod = (i+1)%(MAXLOOP+1);
 			energy_t vi1j = V(ip1_mod,j);
 			energy_t vij1 = V(i_mod,j-1);
-			energy_t vi1j1 = V(ip1_mod,j-1);
-				
-
-			// Checking the dangle positions for W
-			// if(params->model_details.dangles == 1) d =0;
+			energy_t vi1j1 = V(ip1_mod,j-1);	
+						
 			const energy_t w_v  = E_ext_Stem(v,vi1j,vij1,vi1j1,S,params,i,j,d,n,p_table);
 			// Checking the dangle positions for W
 			const energy_t wm_v = E_MLStem(v,vi1j,vij1,vi1j1,S,params,i,j,d,n,p_table);
@@ -1093,9 +1067,8 @@ energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const Sparse
 			wm = std::min(wm_v, wm_split);
 			if ( w_v < w_split || wm_v < wm_split || paired) {
 				// Encode the dangles into the energies
-				energy_t w_enc = (w_v << 2) | d;
-				energy_t wm_enc = (wm_v << 2) | d;
-				register_candidate(CL, i, j,V(i_mod,j), wm_enc,w_enc);
+				energy_t v_enc = (w_v << 2) | d;
+				register_candidate(CL, i, j,V(i_mod,j),v_enc);
 				// always keep arrows starting from candidates
 				inc_source_ref_count(ta,i,j);
 			}		
@@ -1270,7 +1243,6 @@ main(int argc,char **argv) {
 		
 	}
 	
-	
 	energy_t mfe = fold(sparsemfefold.seq_,sparsemfefold.V_,sparsemfefold.cand_comp,sparsemfefold.CL_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.params_,sparsemfefold.ta_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_, sparsemfefold.dmli1_, sparsemfefold.dmli2_,sparsemfefold.n_,sparsemfefold.garbage_collect_, p_table,last_j_array,in_pair_array,up_array);		
 	std::string structure = trace_back(sparsemfefold.seq_,sparsemfefold.CL_,sparsemfefold.cand_comp,sparsemfefold.structure_,sparsemfefold.params_,sparsemfefold.S_,sparsemfefold.S1_,sparsemfefold.ta_,sparsemfefold.W_,sparsemfefold.WM_,sparsemfefold.WM2_,sparsemfefold.n_,p_table,up_array, mark_candidates);
 	
@@ -1278,6 +1250,13 @@ main(int argc,char **argv) {
 	smfe << std::setiosflags(std::ios::fixed) << std::setprecision(2) << mfe/100.0 ;
 
 	std::cout << structure << " ("<<smfe.str()<<")"<<std::endl;
+
+	// float factor=1024;
+	
+	// const std::string unit=" kB";
+	
+	
+	
 	if (verbose) {
 		
 

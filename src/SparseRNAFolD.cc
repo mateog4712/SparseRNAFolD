@@ -677,7 +677,6 @@ void trace_W(const std::string& seq, const std::vector< cand_list_t >& CL, const
 */
 void trace_V(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, const cand_pos_t& n, const bool& mark_candidates, cand_pos_t i, cand_pos_t j, energy_t e,const std::vector<cand_pos_t>& p_table, const std::vector<cand_pos_t>& up_array){
 	assert( i+TURN+1<=j );
-	
 	if (mark_candidates && is_candidate(CL,cand_comp,i,j)) {
 		structure[i]='{';
 		structure[j]='}';
@@ -990,14 +989,12 @@ energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const Sparse
 			const pair_type ptype_closing = pair[S[i]][S[j]];
 			const bool restricted = p_table[i] == -1 || p_table[j] == -1;
 
-			const bool unpaired = (p_table[i]<-1 && p_table[j]<-1);
 			const bool paired = (p_table[i] == j && p_table[j] == i);
 			energy_t v = INF;
 			// ----------------------------------------
 			// cases with base pair (i,j)
 			if(ptype_closing>0 && evaluate && !restricted) { // if i,j form a canonical base pair
-				bool canH = (paired || unpaired);
-				if(up_array[j-1]<(j-i-1)) canH= up_array[j-1]<(j-i-1);
+				bool canH = !up_array[j-1]<(j-i-1);
 				
 				energy_t v_h = canH ? HairpinE(seq,S,S1,params,i,j) : INF;
 				// info of best interior loop decomposition (if better than hairpin)
@@ -1194,6 +1191,16 @@ cand_pos_t capacity_of_candidates(const std::vector<cand_list_t>& CL_) {
 	}
 	return c;
 }
+void seqtoRNA(std::string &sequence){
+	bool DNA = false;
+    for (char &c : sequence) {
+      	if (c == 'T' || c == 't') {
+			c = 'U';
+			DNA = true;
+		}
+    }
+	noGU = DNA;
+}
 
 /**
 * @brief Simple driver for @see SparseMFEFold.
@@ -1235,11 +1242,13 @@ main(int argc,char **argv) {
 
 	
 
-	bool verbose;
-	verbose = args_info.verbose_given;
+	bool verbose = args_info.verbose_given;
 
-	bool mark_candidates;
-	mark_candidates = args_info.mark_candidates_given;
+	bool mark_candidates = args_info.mark_candidates_given;
+
+	noGU = args_info.noGU_given;
+
+	seqtoRNA(seq);
 
 	SparseMFEFold sparsemfefold(seq,!args_info.noGC_given,restricted);
 

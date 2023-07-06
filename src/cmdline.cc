@@ -29,6 +29,7 @@ const char *args_info_help[] = {
   "  -d, --dangles=INT      How to treat \"dangling end\" energies for bases adjacent to helices in free ends and multi-loops (default=`2')",
   "  -P, --paramFile        Read energy parameters from paramfile, instead of using the default parameter set.\n",
   "      --noGC             Turn off garbage collection and related overhead",
+  "      --noGU             Turn off G-U and U-G base pairing",
   "\nThe input sequence is read from standard input, unless it is\ngiven on the command line.\n",
   
 };
@@ -52,6 +53,7 @@ static void init_args_info(struct args_info *args_info)
   args_info->dangles_help = args_info_help[5];
   args_info->paramFile_help = args_info_help[6] ;
   args_info->noGC_help = args_info_help[7] ;
+  args_info->noGC_help = args_info_help[8] ;
   
 }
 void
@@ -101,6 +103,7 @@ static void clear_given (struct args_info *args_info)
   args_info->dangles_given = 0 ;
   args_info->paramFile_given = 0 ;
   args_info->noGC_given = 0 ;
+  args_info->noGU_given = 0 ;
 }
 
 static void clear_args (struct args_info *args_info)
@@ -294,6 +297,7 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
         { "dangles", required_argument, NULL, 'd'},
         { "paramFile",	required_argument, NULL, 'P' },
         { "noGC",	0, NULL, 0 },
+        { "noGU",	0, NULL, 0 },
         { 0,  0, 0, 0 }
       };
 
@@ -378,6 +382,17 @@ int cmdline_parser_internal (int argc, char **argv, struct args_info *args_info,
             if (update_arg( 0 , 
                  0 , &(args_info->noGC_given),
                 &(local_args_info.noGC_given), optarg, 0, 0, ARG_NO, 0, 0,"noGC", '-', additional_error))
+              goto failure;
+          
+          }
+
+          if (strcmp (long_options[option_index].name, "noGU") == 0)
+          {
+          
+          
+            if (update_arg( 0 , 
+                 0 , &(args_info->noGU_given),
+                &(local_args_info.noGU_given), optarg, 0, 0, ARG_NO, 0, 0,"noGU", '-', additional_error))
               goto failure;
           
           }

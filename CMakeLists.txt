@@ -12,7 +12,7 @@ endif()
 
 set(sparseRNAfolD_SOURCE
     src/cmdline.cc
-    src/SparseRNAFolD.cc
+    src/SparseRNAFolD2.cc
     src/trace_arrow.cc 
 )
 

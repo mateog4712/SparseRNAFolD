@@ -94,7 +94,7 @@ class SparseMFEFold {
 		} cand_comp;
 
 		
-
+		
 
 		SparseMFEFold(const std::string &seq, bool garbage_collect, std::string restricted)
 		: seq_(seq),n_(seq.length()),params_(scale_parameters()),ta_(n_),garbage_collect_(garbage_collect){
@@ -584,7 +584,6 @@ void find_mb_dangle(const energy_t WM2ij,const energy_t WM2i1j,const energy_t WM
  * @param j column index
  */
 void trace_W(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta, const std::vector<energy_t> & W, std::vector< energy_t > &WM, std::vector< energy_t > &WM2, const cand_pos_t& n, const bool& mark_candidates, cand_pos_t i, cand_pos_t j,const std::vector<cand_pos_t>& p_table, const std::vector<cand_pos_t>& up_array) {
-
 	if (i+TURN+1>=j) return;
 	// case j unpaired
 	if (W[j] == W[j-1]) {
@@ -597,8 +596,8 @@ void trace_W(const std::string& seq, const std::vector< cand_list_t >& CL, const
     Dangle dangle =3;
 	for ( auto it = CL[j].begin();CL[j].end()!=it && it->first>=i;++it ) {
 		m = it->first;
-		energy_t v_kj = it->third >> 2;
-		Dangle d = it->third & 3;
+		energy_t v_kj = (it->third >> 2);
+		Dangle d = (it->third & 3);
 		w = W[m-1] + v_kj;
 
 		if (W[j] == w) {
@@ -655,7 +654,6 @@ void trace_V(const std::string& seq, const std::vector< cand_list_t >& CL, const
 	assert( i+TURN+1<=j );
 	assert( j<=n );
 	
-	
 	if (mark_candidates && is_candidate(CL,cand_comp,i,j)) {
 		structure[i]='{';
 		structure[j]='}';
@@ -682,8 +680,9 @@ void trace_V(const std::string& seq, const std::vector< cand_list_t >& CL, const
 		// try to trace back to a candidate: (still) interior loop case
 		cand_pos_t l_min = std::max(i,j-31);
 		for ( cand_pos_t l=j-1; l>l_min; l--) {
-			for ( auto it=CL[l].begin(); CL[l].end()!=it && it->first>i && it->first-i<32; ++it ) {
+			for ( auto it=CL[l].begin(); CL[l].end()!=it && it->first>i; ++it ) {
 				const cand_pos_t k=it->first;
+				if(k-i > 31) continue;
 				// if (  e == it->second + ILoopE(S,S1,params,ptype_closing,i,j,k,l) ) {
 				if (  e == it->second + E_IntLoop(k-i-1,j-l-1,ptype_closing,rtype[pair[S[k]][S[l]]],S1[i+1],S1[j-1],S1[k-1],S1[l+1],const_cast<paramT *>(params)) ) {
 					trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,k,l,it->second,p_table,up_array);
@@ -946,13 +945,15 @@ energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const Sparse
 				
 				const bool can_pair = up_array[k-1] >= (k-i);
 				
-				wm_split = std::min( wm_split, WM[k-1] + v_kj + params->MLintern[2]);
-				if(can_pair) wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + v_kj + params->MLintern[2]);
-				wm2_split = std::min( wm2_split, WM[k-1] + v_kj + params->MLintern[2]);
+				wm_split = std::min( wm_split, WM[k-1] + v_kj);
+				if(can_pair) wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + v_kj);
+				wm2_split = std::min( wm2_split, WM[k-1] + v_kj);
 				w_split = std::min( w_split, W[k-1] + v_kj);
 		
 				
 			}
+			wm_split += params->MLintern[2];
+			wm2_split += params->MLintern[2];
 			if(p_table[j]<0) w_split = std::min(w_split,W[j-1]);
 			if(p_table[j]<0) wm2_split = std::min( wm2_split, WM2[j-1] + params->MLbase );
 			if(p_table[j]<0) wm_split = std::min( wm_split, WM[j-1] + params->MLbase );
@@ -967,14 +968,12 @@ energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const Sparse
 			const pair_type ptype_closing = pair[S[i]][S[j]];
 			const bool restricted = p_table[i] == -1 || p_table[j] == -1;
 
-			const bool unpaired = (p_table[i]<-1 && p_table[j]<-1);
 			const bool paired = (p_table[i] == j && p_table[j] == i);
 			energy_t v = INF;
 			// ----------------------------------------
 			// cases with base pair (i,j)
 			if(ptype_closing>0 && evaluate && !restricted) { // if i,j form a canonical base pair
-				bool canH = (paired || unpaired);
-				if(up_array[j-1]<(j-i-1)) canH= up_array[j-1]<(j-i-1);
+				bool canH = !up_array[j-1]<(j-i-1);
 				
 				energy_t v_h = canH ? HairpinE(seq,S,S1,params,i,j) : INF;
 				// info of best interior loop decomposition (if better than hairpin)
@@ -1154,6 +1153,7 @@ cand_pos_t num_of_candidates(const std::vector<cand_list_t>& CL_)  {
 	}
 	return c;
 }
+
 /**
  * @brief Finds the size of allocated storage capacity across all indices
  * 
@@ -1166,6 +1166,17 @@ cand_pos_t capacity_of_candidates(const std::vector<cand_list_t>& CL_) {
 		c += x.capacity();
 	}
 	return c;
+}
+
+void seqtoRNA(std::string &sequence){
+	bool DNA = false;
+    for (char &c : sequence) {
+      	if (c == 'T' || c == 't') {
+			c = 'U';
+			DNA = true;
+		}
+    }
+	noGU = DNA;
 }
 
 /**
@@ -1208,11 +1219,13 @@ main(int argc,char **argv) {
 
 	
 
-	bool verbose;
-	verbose = args_info.verbose_given;
+	bool verbose = args_info.verbose_given;
 
-	bool mark_candidates;
-	mark_candidates = args_info.mark_candidates_given;
+	bool mark_candidates = args_info.mark_candidates_given;
+
+	noGU = args_info.noGU_given;
+
+	seqtoRNA(seq);
 
 	SparseMFEFold sparsemfefold(seq,!args_info.noGC_given,restricted);
 

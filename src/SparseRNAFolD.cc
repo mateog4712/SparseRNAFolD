@@ -372,7 +372,7 @@ energy_t E_MbLoop( const std::vector<energy_t>& dmli1, const std::vector<energy_
 			* new closing pair (i,j) with mb part [i+2.j-2]
 			*/
 			if (pairable && p_table[i+1] < 0 && p_table[j-1] <0) {
-				en = dmli2[j - 2];
+				en = dmli2[j - 2];			
 
 				if (en != INF) {
 
@@ -813,7 +813,7 @@ void trace_WM(const std::string& seq, const std::vector< cand_list_t >& CL, cons
 		trace_WM(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,i,m-1,WM[m-1],p_table,up_array);
 		trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,k,l,v,p_table,up_array);
 		return;
-	} else if ( e == static_cast<energy_t>((k-i)*params->MLbase) + vk ) {
+	} else if ( e == static_cast<energy_t>((m-i)*params->MLbase) + vk ) {
 		trace_V(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,k,l,v,p_table,up_array);
 		return;
 	}
@@ -973,9 +973,9 @@ energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const Sparse
 				wm_split = std::min( wm_split, WM[k-1] + v_kj );
 				if(can_pair) wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + v_kj );
 				wm2_split = std::min( wm2_split, WM[k-1] + v_kj );
-				w_split = std::min( w_split, W[k-1] + v_kjw );		
-				
+				w_split = std::min( w_split, W[k-1] + v_kjw );			
 			}
+
 			if(p_table[j]<0) w_split = std::min(w_split,W[j-1]);
 			if(p_table[j]<0) wm2_split = std::min( wm2_split, WM2[j-1] + params->MLbase );
 			if(p_table[j]<0) wm_split = std::min( wm_split, WM[j-1] + params->MLbase );
@@ -1039,6 +1039,7 @@ energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const Sparse
 					}
 				}
 				const energy_t v_split = E_MbLoop(dmli1,dmli2,S,params,i,j,p_table);
+				
 
 				v = std::min(v_h,std::min(v_iloop,v_split));
 				// register required trace arrows from (i,j)
@@ -1059,7 +1060,6 @@ energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const Sparse
 			energy_t vij1 = V(i_mod,j-1);
 			energy_t vi1j1 = V(ip1_mod,j-1);
 				
-
 			// Checking the dangle positions for W
 			// if(params->model_details.dangles == 1) d =0;
 			const energy_t w_v  = E_ext_Stem(v,vi1j,vij1,vi1j1,S,params,i,j,d,n,p_table);

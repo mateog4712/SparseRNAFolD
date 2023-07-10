@@ -351,6 +351,7 @@ energy_t E_MbLoop( const std::vector<energy_t>& dmli1, const std::vector<energy_
 			*/
 			if (pairable && p_table[i+1] < 0 && p_table[j-1] <0) {
 				en = dmli2[j - 2];
+				if(i==63 && j==97) printf("i is %d and j is %d and en is %d\n",i,j,en);
 
 				if (en != INF) {
 
@@ -942,18 +943,22 @@ energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const Sparse
 				const cand_pos_t k=it->first;
 				// Decode the energies
 				const energy_t v_kj = it->third >> 2;
+				const energy_t v_kjwm = v_kj + params->MLintern[2];
 				
 				const bool can_pair = up_array[k-1] >= (k-i);
 				
-				wm_split = std::min( wm_split, WM[k-1] + v_kj);
-				if(can_pair) wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + v_kj);
-				wm2_split = std::min( wm2_split, WM[k-1] + v_kj);
+				wm_split = std::min( wm_split, WM[k-1] + v_kjwm);
+				if(can_pair) wm_split = std::min( wm_split,static_cast<energy_t>((k-i)*params->MLbase) + v_kjwm);
+				wm2_split = std::min( wm2_split, WM[k-1] + v_kjwm);
 				w_split = std::min( w_split, W[k-1] + v_kj);
+				if(i==64 && j==81) printf("i is %d and j is %d and k is %d and up is %d and vkj is %d\n",i,j,k,static_cast<energy_t>((k-i)*params->MLbase), v_kj);
 		
 				
 			}
-			wm_split += params->MLintern[2];
-			wm2_split += params->MLintern[2];
+			if(i==64 && j==96) printf("i is %d and j is %d and wm2 is %d\n",i,j,wm2_split);
+			if(i==64 && j==81) printf("i is %d and j is %d and wm is %d\n",i,j,wm_split);
+			// wm_split += params->MLintern[2];
+			// wm2_split += params->MLintern[2];
 			if(p_table[j]<0) w_split = std::min(w_split,W[j-1]);
 			if(p_table[j]<0) wm2_split = std::min( wm2_split, WM2[j-1] + params->MLbase );
 			if(p_table[j]<0) wm_split = std::min( wm_split, WM[j-1] + params->MLbase );
@@ -1037,10 +1042,19 @@ energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const Sparse
 			energy_t vi1j = V(ip1_mod,j);
 			energy_t vij1 = V(i_mod,j-1);
 			energy_t vi1j1 = V(ip1_mod,j-1);	
-						
+
+			if(i==9 && j==251) printf("i is %d and j is %d and v is %d\n",i,j,v);
+			if(i==19 && j==227) printf("i is %d and j is %d and v is %d\n",i,j,v);	
+			if(i==31 && j==218) printf("i is %d and j is %d and v is %d\n",i,j,v);
+			if(i==180 && j==212) printf("i is %d and j is %d and v is %d\n",i,j,v);
+			if(i==34 && j==177) printf("i is %d and j is %d and v is %d\n",i,j,v);
+			if(i==63 && j==97) printf("i is %d and j is %d and v is %d\n",i,j,v);
+			if(i==68 && j==81) printf("i is %d and j is %d and v is %d\n",i,j,v);
+			if(i==85 && j==96) printf("i is %d and j is %d and v is %d\n",i,j,v);			
 			const energy_t w_v  = E_ext_Stem(v,vi1j,vij1,vi1j1,S,params,i,j,d,n,p_table);
 			// Checking the dangle positions for W
 			const energy_t wm_v = E_MLStem(v,vi1j,vij1,vi1j1,S,params,i,j,d,n,p_table);
+			if(i==67 && j==81) printf("i is %d and j is %d and v is %d and wm_v is %d\n",i,j,v,wm_v);
 
 			cand_pos_t k = i;
             cand_pos_t l = j;

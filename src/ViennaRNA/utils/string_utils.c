@@ -34,19 +34,19 @@
  #################################
  */
 
-#ifndef HAVE_STRDUP
-char *
-strdup(const char *s)
-{
-  char *dup;
+// #ifndef HAVE_STRDUP
+// char *
+// strdup(const char *s)
+// {
+//   char *dup;
 
-  dup = vrna_alloc(strlen(s) + 1);
-  strcpy(dup, s);
-  return dup;
-}
+//   dup = vrna_alloc(strlen(s) + 1);
+//   strcpy(dup, s);
+//   return dup;
+// }
 
 
-#endif
+// #endif
 
 PUBLIC char *
 vrna_strdup_printf(const char *format,

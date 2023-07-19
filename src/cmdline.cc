@@ -18,7 +18,7 @@ const char *args_info_usage = "Usage: sparsemfefold"  "[options] [sequence]";
 
 const char *args_info_versiontext = "";
 
-const char *args_info_description = "Read RNA sequence from stdin or cmdline; predict minimum\nfree energy and optimum structure using the time- and space-efficient\nMFE RNA folding algorithm of Will and Jabbari, 2015. The results are\nequivalent to RNAfold -d0, but the computation takes less time (for\nlong sequences) and much less space.";
+const char *args_info_description = "Read RNA sequence from stdin or cmdline; predict minimum\nfree energy and optimum structure using the time- and space-efficient\nMFE RNA folding algorithm of Gray, Will, and Jabbari (2023). The results are\nequivalent to RNAfold, but the computation takes less time (for\nlong sequences) and much less space.";
 
 const char *args_info_help[] = {
   "  -h, --help             Print help and exit",

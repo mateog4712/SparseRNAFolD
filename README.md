@@ -80,3 +80,6 @@ TAs cap:169
     
 ## Results
 Results can be found at https://github.com/mateog4712/SparseRNAFolD-RawData
+
+## Questions
+For questions, you can email mateo2@ualberta.ca

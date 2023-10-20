@@ -84,6 +84,43 @@
     70   -30    70   -30    70
     70    70    70    70    10
 
+# mismatch_interior_23
+     0     0     0     0     0
+     0     0     0   -56     0
+     0     0     0     0     0
+     0   -56     0     0     0
+     0     0     0     0   -46
+     0     0     0     0     0
+     0     0     0   -56     0
+     0     0     0     0     0
+     0   -56     0     0     0
+     0     0     0     0   -46
+     0     0     0     0     0
+     0    77    77    21    77
+     0    77    77    77    77
+     0    21    77    77    77
+     0    77    77    77    31
+     0     0     0     0     0
+     0    77    77    21    77
+     0    77    77    77    77
+     0    21    77    77    77
+     0    77    77    77    31
+     0     0     0     0     0
+     0    77    77    21    77
+     0    77    77    77    77
+     0    21    77    77    77
+     0    77    77    77    31
+     0     0     0     0     0
+     0    77    77    21    77
+     0    77    77    77    77
+     0    21    77    77    77
+     0    77    77    77    31
+    70    70    70    70    70
+    70    70    70   -10    70
+    70    70    70    70    70
+    70   -30    70   -30    70
+    70    70    70    70    10
+
 # mismatch_exterior
 /*  N     A     C     G     U   */
    INF   INF   INF   INF   INF /* CG,N */ 
@@ -3987,38 +4024,39 @@
 /* Ninio = MIN(max, m*|n1-n2| */
 /* m	 m_dH	  max              */
 		 50	 320	 300
+# Hexaloops
 
 # Tetraloops
-	GGGGAC	 -65
-	GGUGAC	-202
-	CGAAAG	-130
-	GGAGAC	 -62
-	CGCAAG	-166
-	GGAAAC	-168
-	CGGAAG	-158
-	CUUCGG	-184
-	CGUGAG	-196
-	CGAAGG	-233
-	CUACGG	-186
-	GGCAAC	-139
-	CGCGAG	-142
-	UGAGAG	-216
-	CGAGAG	  20
-	AGAAAU	-135
-	CGUAAG	-102
-	CUAACG	-133
-	UGAAAG	 -97
-	GGAAGC	-117
-	GGGAAC	 -80
-	UGAAAA	 -67
-	AGCAAU	 -84
-	AGUAAU	 -52
-	CGGGAG	 -69
-	AGUGAU	 -68
-	GGCGAC	 -18
-	GGGAGC	 -63
-	GUGAAC	 -33
-	UGGAAA	   6
+	GGGGAC     150     690
+	GGUGAC     13     690
+	CGAAAG     85     690
+	GGAGAC     153     690
+	CGCAAG     49     690
+	GGAAAC     47     690
+	CGGAAG     57     690
+	CUUCGG     4     690
+	CGUGAG     19     690
+	CGAAGG     46     690
+	CUACGG     2     690
+	GGCAAC     76     690
+	CGCGAG     73     690
+	UGAGAG     40     690
+	CGAGAG     235     690
+	AGAAAU     118     690
+	CGUAAG     113     690
+	CUAACG     91     690
+	UGAAAG     159     690
+	GGAAGC     138     690
+	GGGAAC     135     690
+	UGAAAA     172     690
+	AGCAAU     169     690
+	AGUAAU     201     690
+	CGGGAG     146     690
+	AGUGAU     185     690
+	GGCGAC     197     690
+	GGGAGC     192     690
+	GUGAAC     257     690
+	UGGAAA     245     690
 
 # Triloops
 

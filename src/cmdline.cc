@@ -53,7 +53,7 @@ static void init_args_info(struct args_info *args_info)
   args_info->dangles_help = args_info_help[5];
   args_info->paramFile_help = args_info_help[6] ;
   args_info->noGC_help = args_info_help[7] ;
-  args_info->noGC_help = args_info_help[8] ;
+  args_info->noGU_help = args_info_help[8] ;
   
 }
 void

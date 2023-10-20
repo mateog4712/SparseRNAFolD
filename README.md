@@ -53,7 +53,7 @@ Read input file from cmdline; predict minimum free energy and optimum structure 
   -r, --input-structure  Give a restricted structure as an input structure
   -d, --dangles=INT      How to treat \"dangling end\" energies for bases adjacent to helices in free ends and multi-loops (default=`2')
   -P, --paramFile        Read energy parameters from paramfile, instead of using the default parameter set.
-  --noGC                 Turn off garbage collection and related overhead
+      --noGC             Turn off garbage collection and related overhead
 ```
 
 #### Example:

@@ -948,7 +948,7 @@ bool evaluate_restriction(cand_pos_t i, cand_pos_t j, const std::vector<cand_pos
 /**
  * @brief Determines the MFE energy for a given sequence
 */
-energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const SparseMFEFold::Cand_comp& cand_comp, std::vector<cand_list_t> &CL, const short* S, const short* S1, paramT* params, TraceArrows &ta, std::vector<energy_t> &W, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, std::vector<energy_t> &dmli1, std::vector<energy_t> &dmli2, const cand_pos_t& n, const bool& garbage_collect,const std::vector<cand_pos_t>& p_table,const std::vector<cand_pos_t>& last_j_array,const std::vector<cand_pos_t>& in_pair_array,const std::vector<cand_pos_t>& up_array) {
+energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const SparseMFEFold::Cand_comp& cand_comp, std::vector<cand_list_t> &CL, const short* S, const short* S1, paramT* params, TraceArrows &ta, std::vector<energy_t> &W, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, std::vector<energy_t> &dmli1, std::vector<energy_t> &dmli2, const cand_pos_t n, const bool garbage_collect,const std::vector<cand_pos_t>& p_table,const std::vector<cand_pos_t>& last_j_array,const std::vector<cand_pos_t>& in_pair_array,const std::vector<cand_pos_t>& up_array) {
 	Dangle d = 3;
     if(params->model_details.dangles == 0 || params->model_details.dangles == 1) d = 0;
     
@@ -964,6 +964,7 @@ energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const Sparse
 			energy_t wm2_split = INF;
 			for ( auto it=CL[j].begin();CL[j].end() != it;++it ) {
 				const cand_pos_t k=it->first;
+
 				// Decode the energies
 				const energy_t v_kj = it->third >> 2;
 				const energy_t v_kjw = it->fourth >> 2;
@@ -1017,14 +1018,13 @@ energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const Sparse
 					for ( cand_pos_t k=i+1; k<=max_k; k++) {
 						cand_pos_t k_mod= k%(MAXLOOP+1);
 						
-						energy_t cank = (up_array[k-1]>=(k-i-1)-1);
+						energy_t cank = ((up_array[k-1]>=(k-i-1))-1);;
 						cand_pos_t min_l=std::max(k+TURN+1, k+j-i- MAXLOOP-2);
 						
 						for (size_t l=j-1; l>=min_l; --l) {
 							assert(k-i+j-l-2<=MAXLOOP);
-							energy_t canl = ((up_array[j-1]>=(j-l-1)-1) | cank);
+							energy_t canl = (((up_array[j-1]>=(j-l-1))-1) | cank);
 							energy_t v_iloop_kl = INF & canl;
-							
 							v_iloop_kl = v_iloop_kl + V(k_mod,l) + E_IntLoop(k-i-1,j-l-1,ptype_closing,rtype[pair[S[k]][S[l]]],S1[i+1],S1[j-1],S1[k-1],S1[l+1],const_cast<paramT *>(params));
 							// v_iloop_kl = v_iloop_kl + V(k_mod,l) + ILoopE(S,S1,params,ptype_closing,i,j,k,l);
 
@@ -1065,6 +1065,7 @@ energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const Sparse
 			const energy_t w_v  = E_ext_Stem(v,vi1j,vij1,vi1j1,S,params,i,j,d,n,p_table);
 			// Checking the dangle positions for W
 			const energy_t wm_v = E_MLStem(v,vi1j,vij1,vi1j1,S,params,i,j,d,n,p_table);
+
 
 			cand_pos_t k = i;
             cand_pos_t l = j;

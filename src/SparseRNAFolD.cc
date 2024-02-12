@@ -1000,7 +1000,7 @@ energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const Sparse
 			// ----------------------------------------
 			// cases with base pair (i,j)
 			if(ptype_closing>0 && evaluate && !restricted) { // if i,j form a canonical base pair
-				bool canH = !up_array[j-1]<(j-i-1);
+				bool canH = !(up_array[j-1]<(j-i-1));
 				
 				energy_t v_h = canH ? HairpinE(seq,S,S1,params,i,j) : INF;
 				// info of best interior loop decomposition (if better than hairpin)

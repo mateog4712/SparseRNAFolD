@@ -2,7 +2,7 @@
 
 #### Description:
 Software implementation of SparseRNAFolD.      
-SparseRNAFolD is an Time- and space-efficient sparsified minimum free energy folding of pseudoknot-free RNAs
+SparseRNAFolD is a time- and space-efficient sparsified minimum free energy folding of pseudoknot-free RNAs
 
 #### Supported OS: 
 Linux, macOS

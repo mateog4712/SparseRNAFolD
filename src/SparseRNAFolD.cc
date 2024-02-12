@@ -607,6 +607,8 @@ void find_mb_dangle(const energy_t WM2ij,const energy_t WM2i1j,const energy_t WM
  * @param j column index
  */
 void trace_W(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta, const std::vector<energy_t> & W, std::vector< energy_t > &WM, std::vector< energy_t > &WM2, const cand_pos_t& n, const bool& mark_candidates, cand_pos_t i, cand_pos_t j,const std::vector<cand_pos_t>& p_table, const std::vector<cand_pos_t>& up_array) {
+	// printf("W at %d and %d with %d\n",i,j,W[j]);
+
 	if (i+TURN+1>=j) return;
 	// case j unpaired
 	if (W[j] == W[j-1]) {
@@ -676,6 +678,8 @@ void trace_W(const std::string& seq, const std::vector< cand_list_t >& CL, const
 * @param j column index
 */
 void trace_V(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, const cand_pos_t& n, const bool& mark_candidates, cand_pos_t i, cand_pos_t j, energy_t e,const std::vector<cand_pos_t>& p_table, const std::vector<cand_pos_t>& up_array){
+	// printf("V at %d and %d with %d\n",i,j,e);
+
 	assert( i+TURN+1<=j );
 	if (mark_candidates && is_candidate(CL,cand_comp,i,j)) {
 		structure[i]='{';
@@ -715,6 +719,7 @@ void trace_V(const std::string& seq, const std::vector< cand_list_t >& CL, const
 	}
 	// is it a hairpin?
 	if ( e == HairpinE(seq,S,S1,params,i,j) ) {
+
 		return;
 	}
 	
@@ -737,7 +742,6 @@ void trace_V(const std::string& seq, const std::vector< cand_list_t >& CL, const
 			WM2 = temp4;
 		}
 	}
-
 	trace_WM2(seq,CL,cand_comp,structure,params,S,S1,ta,WM,WM2,n,mark_candidates,k,l,p_table,up_array);
 }
 
@@ -751,6 +755,7 @@ void trace_V(const std::string& seq, const std::vector< cand_list_t >& CL, const
 * @param e energy in WM(i,j) 
 */
 void trace_WM(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params,const short* S, const short* S1, TraceArrows &ta, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, const cand_pos_t& n, const bool& mark_candidates, cand_pos_t i, cand_pos_t j, energy_t e,const std::vector<cand_pos_t>& p_table, const std::vector<cand_pos_t>& up_array){
+	// printf("WM at %d and %d with %d\n",i,j,e);
 
 	if (i+TURN+1>j) {return;}
 
@@ -829,7 +834,7 @@ void trace_WM(const std::string& seq, const std::vector< cand_list_t >& CL, cons
 * @param j column index
  */
 void trace_WM2(const std::string& seq, const std::vector< cand_list_t >& CL, const SparseMFEFold::Cand_comp& cand_comp, std::string &structure, paramT* params, const short* S, const short* S1, TraceArrows &ta, std::vector<energy_t> &WM, std::vector<energy_t> &WM2, const cand_pos_t& n, const bool& mark_candidates,cand_pos_t i, cand_pos_t j,const std::vector<cand_pos_t>& p_table, const std::vector<cand_pos_t>& up_array){
-
+	// printf("WM2 at %d and %d with %d\n",i,j,WM2[j]);
 	if (i+2*TURN+3>j) {return;}
 	const energy_t e = WM2[j];
 
@@ -1018,7 +1023,7 @@ energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const Sparse
 					for ( cand_pos_t k=i+1; k<=max_k; k++) {
 						cand_pos_t k_mod= k%(MAXLOOP+1);
 						
-						energy_t cank = ((up_array[k-1]>=(k-i-1))-1);;
+						energy_t cank = ((up_array[k-1]>=(k-i-1))-1);
 						cand_pos_t min_l=std::max(k+TURN+1, k+j-i- MAXLOOP-2);
 						
 						for (size_t l=j-1; l>=min_l; --l) {
@@ -1096,7 +1101,8 @@ energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const Sparse
 				register_candidate(CL, i, j,V(i_mod,j), wm_enc,w_enc);
 				// always keep arrows starting from candidates
 				inc_source_ref_count(ta,i,j);
-			}		
+			}
+		
 
 			W[j]       = w;
 			WM[j]      = wm;

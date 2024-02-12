@@ -57,7 +57,7 @@ Read input file from cmdline; predict minimum free energy and optimum structure 
 ```
 
 #### Example:
-    assume you are in the KnotAli directory
+    assume you are in the SparseRNAFolD directory
     ./build/src/SparseRNAFolD GGGGAAAACCCC
     ./build/src/SparseRNAFolD GGGGAAAACCCC -r "((........))" -d1
 

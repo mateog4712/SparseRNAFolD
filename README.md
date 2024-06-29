@@ -2,7 +2,7 @@
 
 #### Description:
 Software implementation of SparseRNAFolD.      
-SparseRNAFolD is an algorithm for predicting the pseudoknotted secondary structure of RNA using relaxed Hierarchical Folding.
+SparseRNAFolD is a time- and space-efficient sparsified minimum free energy folding of pseudoknot-free RNAs
 
 #### Supported OS: 
 Linux, macOS

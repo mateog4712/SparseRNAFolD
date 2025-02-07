@@ -1245,7 +1245,7 @@ main(int argc,char **argv) {
 		exit(0);
 	}
 
-	std::string file= args_info.paramFile_given ? parameter_file : "params/rna_Turner2004.par";
+	std::string file= args_info.paramFile_given ? parameter_file : "params/rna_DirksPierce09.par";
 	if(exists(file)){
 		vrna_params_load(file.c_str(), VRNA_PARAMETER_FORMAT_DEFAULT);
 	}

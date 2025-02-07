@@ -20,6 +20,7 @@
 #include <string>
 #include <cassert>
 #include <sstream>
+#include <sys/stat.h>
 
 
 extern "C" {
@@ -71,6 +72,8 @@ class SparseMFEFold {
 
 		paramT *params_;
 
+		TraceArrows ta_;
+
 		std::string structure_;
 		std::string restricted_;
 		
@@ -86,16 +89,14 @@ class SparseMFEFold {
 		std::vector<energy_t> dmli2_; // WM2 from 2 iterations ago
 
 		bool mark_candidates_;
-
-
-		TraceArrows ta_;		
+		
 		std::vector< cand_list_t > CL_;	
 
 		// compare candidate list entries by keys (left index i) in descending order
 		struct Cand_comp{
-		bool operator ()(const cand_entry_t &x, size_t y) const {
-			return x.first > y;
-		}
+			bool operator ()(const cand_entry_t &x, cand_pos_t y) const {
+				return x.first > y;
+			}
 		} cand_comp;
 
 		SparseMFEFold(const std::string &seq, bool garbage_collect, std::string restricted)
@@ -491,7 +492,7 @@ energy_t E_MLStem(const energy_t& vij,const energy_t& vi1j,const energy_t& vij1,
 * @param i Current i
 * @param max_j Current j
 */
-const std::vector<energy_t> recompute_WM(const std::vector<energy_t>& WM, const std::vector< cand_list_t > &CL, const short* S, paramT* params, const cand_pos_t& n, cand_pos_t i, cand_pos_t max_j, const std::vector<cand_pos_t>& p_table, const std::vector<cand_pos_t>& up_array) {
+const std::vector<energy_t> recompute_WM(const std::vector<energy_t>& WM, const std::vector< cand_list_t > &CL, paramT* params, cand_pos_t i, cand_pos_t max_j, const std::vector<cand_pos_t>& p_table, const std::vector<cand_pos_t>& up_array) {
 	assert(i>=1);
 	assert(max_j<=n_);
 	std::vector<energy_t> temp = WM;
@@ -524,7 +525,7 @@ const std::vector<energy_t> recompute_WM(const std::vector<energy_t>& WM, const 
 * @param i Current i
 * @param max_j Current j
 */
-const std::vector<energy_t> recompute_WM2(const std::vector<energy_t>& WM,const std::vector<energy_t>& WM2, const std::vector< cand_list_t > &CL, const short* S, paramT* params, const cand_pos_t& n, cand_pos_t i, cand_pos_t max_j, const std::vector<cand_pos_t>& p_table) {
+const std::vector<energy_t> recompute_WM2(const std::vector<energy_t>& WM,const std::vector<energy_t>& WM2, const std::vector< cand_list_t > &CL, paramT* params, cand_pos_t i, cand_pos_t max_j, const std::vector<cand_pos_t>& p_table) {
 	assert(i>=1);
 	assert(max_j<=n_);
 	std::vector<energy_t> temp = WM2;
@@ -692,8 +693,8 @@ void trace_V(const std::string& seq, const std::vector< cand_list_t >& CL, const
 	if (exists_trace_arrow_from(ta,i,j)) {
 		
 		const TraceArrow &arrow = trace_arrow_from(ta,i,j);
-		const cand_pos_t k=arrow.k(i,j);
-		const cand_pos_t l=arrow.l(i,j);
+		const cand_pos_t k=arrow.k(i);
+		const cand_pos_t l=arrow.l(j);
 		assert(i<k);
 		assert(l<j);
 		
@@ -725,17 +726,17 @@ void trace_V(const std::string& seq, const std::vector< cand_list_t >& CL, const
 	
 	// if we are still here, trace to wm2 (split case);
 	// in this case, we know the 'trace arrow'; the next row has to be recomputed
-	const std::vector<energy_t> temp = recompute_WM(WM,CL,S,params,n,i+1,j-1,p_table,up_array);
+	const std::vector<energy_t> temp = recompute_WM(WM,CL,params,i+1,j-1,p_table,up_array);
 	WM = temp;
-	const std::vector<energy_t> temp2 = recompute_WM2(WM,WM2,CL,S,params,n,i+1,j-1,p_table);
+	const std::vector<energy_t> temp2 = recompute_WM2(WM,WM2,CL,params,i+1,j-1,p_table);
 	WM2 = temp2;
 	
 	// Dangle for Multiloop
 	cand_pos_t k = i+1;
 	cand_pos_t l = j-1;
 	if(params->model_details.dangles == 1){
-		const std::vector<energy_t> temp3 = recompute_WM(WM,CL,S,params,n,i+2,j-1,p_table,up_array);
-		const std::vector<energy_t> temp4 = recompute_WM2(temp3,WM2,CL,S,params,n,i+2,j-1,p_table);
+		const std::vector<energy_t> temp3 = recompute_WM(WM,CL,params,i+2,j-1,p_table,up_array);
+		const std::vector<energy_t> temp4 = recompute_WM2(temp3,WM2,CL,params,i+2,j-1,p_table);
 		find_mb_dangle(temp2[j-1],temp4[j-1],temp2[j-2],temp4[j-2],params,S,i,j,k,l,p_table);
 		if (k>i+1){
 			WM = temp3;
@@ -941,11 +942,11 @@ void register_candidate(std::vector<cand_list_t> &CL, cand_pos_t const& i, cand_
 bool evaluate_restriction(cand_pos_t i, cand_pos_t j, const std::vector<cand_pos_t>& last_j_array, const std::vector<cand_pos_t>& in_pair_array){
 	bool evaluate = 1;
 	// if(in_pair_array[i]>in_pair_array[j]) evaluate = 0;
-	evaluate &= ~(in_pair_array[i]>in_pair_array[j]);
+	evaluate &= !(in_pair_array[i]>in_pair_array[j]);
 	// if(in_pair_array[i]<in_pair_array[j]) evaluate = 0;
-	evaluate &= ~(in_pair_array[i]<in_pair_array[j]);
+	evaluate &= !(in_pair_array[i]<in_pair_array[j]);
 	// if(in_pair_array[i]==in_pair_array[j]) if(j>last_j_array[i]) evaluate = 0
-	evaluate &= ((in_pair_array[i]==in_pair_array[j]) & ~(j>last_j_array[i]));
+	evaluate &= ((in_pair_array[i]==in_pair_array[j]) & !(j>last_j_array[i]));
 	
 	return evaluate;
 }
@@ -963,7 +964,6 @@ energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const Sparse
 			bool evaluate = evaluate_restriction(i,j,last_j_array,in_pair_array);
 			// ------------------------------
 			// W: split case
-			bool pairedkj = 0;
 			energy_t w_split = INF;
 			energy_t wm_split = INF;
 			energy_t wm2_split = INF;
@@ -1006,7 +1006,7 @@ energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const Sparse
 				// info of best interior loop decomposition (if better than hairpin)
 				cand_pos_t best_l=0;
 				cand_pos_t best_k=0;
-				energy_t best_e;
+				energy_t best_e = INF;
 
 				energy_t v_iloop=INF;
 
@@ -1026,7 +1026,7 @@ energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const Sparse
 						energy_t cank = ((up_array[k-1]>=(k-i-1))-1);
 						cand_pos_t min_l=std::max(k+TURN+1, k+j-i- MAXLOOP-2);
 						
-						for (size_t l=j-1; l>=min_l; --l) {
+						for (cand_pos_t l=j-1; l>=min_l; --l) {
 							assert(k-i+j-l-2<=MAXLOOP);
 							energy_t canl = (((up_array[j-1]>=(j-l-1))-1) | cank);
 							energy_t v_iloop_kl = INF & canl;
@@ -1141,7 +1141,7 @@ energy_t fold(const std::string& seq, LocARNA::Matrix<energy_t> &V, const Sparse
  * @param in_pair_array Restricted Array
  */
 void detect_restricted_pairs(const std::string &structure, std::vector<cand_pos_t> &p_table, std::vector<cand_pos_t> &last_j_array, std::vector<cand_pos_t> &in_pair_array){
-	cand_pos_t i, j, count = 0, length = structure.length(),last_j=length;
+	cand_pos_t i, j, count = 0, length = structure.length();
 	std::vector<cand_pos_t>  pairs;
 	pairs.push_back(length);
 
@@ -1208,6 +1208,10 @@ void seqtoRNA(std::string &sequence){
     }
 	noGU = DNA;
 }
+bool exists (const std::string path) {
+  struct stat buffer;   
+  return (stat (path.c_str(), &buffer) == 0); 
+}
 
 /**
 * @brief Simple driver for @see SparseMFEFold.
@@ -1236,14 +1240,13 @@ main(int argc,char **argv) {
 	std::string restricted;
     args_info.input_structure_given ? restricted = input_structure : restricted = std::string (n,'.');
 
-	if(restricted != "" && restricted.length() != n ){
+	if(restricted != "" &&  (cand_pos_t) restricted.length() != n ){
 		std::cout << "input sequence and structure are not the same size" << std::endl;
 		exit(0);
 	}
 
-	std::string file= "";
-	args_info.paramFile_given ? file = parameter_file : file = "";
-	if(file!=""){
+	std::string file= args_info.paramFile_given ? parameter_file : "params/rna_Turner2004.par";
+	if(exists(file)){
 		vrna_params_load(file.c_str(), VRNA_PARAMETER_FORMAT_DEFAULT);
 	}
 

@@ -54,6 +54,9 @@ Read input file from cmdline; predict minimum free energy and optimum structure 
       --noGC             Turn off garbage collection and related overhead
 ```
 
+Remarks:
+    The default parameter file is DP09. This can be changed via -P and specifying the parameter file you would like
+
 #### Example:
     assume you are in the SparseRNAFolD directory
     ./build/src/SparseRNAFolD GGGGAAAACCCC

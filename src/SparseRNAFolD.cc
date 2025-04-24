@@ -1148,7 +1148,7 @@ void detect_restricted_pairs(const std::string &structure, std::vector<cand_pos_
 	for (i=length; i >=1; --i){
 		if ((structure[i-1] == 'x') || (structure[i-1] == 'X'))
 			p_table[i] = -1;
-		else if (structure[i-1] == '.')
+		else if (structure[i-1] == '.' || structure[i-1] == '_')
 			p_table[i] = -2;
 		if (structure[i-1] == ')' || structure[i-1] == ']' || structure[i-1] == '}' || structure[i-1] == '>'){
 			pairs.push_back(i);

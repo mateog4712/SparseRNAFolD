@@ -12,18 +12,13 @@ set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -flto")
 set(CMAKE_C_FLAGS_DEBUG "-g")
-set(CMAKE_C_FLAGS_RELEASE "-O3 -flto")
+
 
 set(sparseRNAfolD_SOURCE
     src/cmdline.cc
     src/SparseRNAFolD.cc
     src/trace_arrow.cc 
 )
-
-# set(test_SOURCE
-# test/Case7.cpp 
-# test/Test.cpp
-# )
 
 set(constraints_SOURCE
     src/ViennaRNA/constraints/constraints.c

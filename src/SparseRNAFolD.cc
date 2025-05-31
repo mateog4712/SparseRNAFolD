@@ -222,7 +222,7 @@ energy_t E_ext_Stem(const energy_t& vij,const energy_t& vi1j,const energy_t& vij
 						d = 0;
 					}
 
-                    e = MIN2(e, en);
+                    e = std::min(e, en);
 					
 				}
 
@@ -239,7 +239,7 @@ energy_t E_ext_Stem(const energy_t& vij,const energy_t& vi1j,const energy_t& vij
                 en += vrna_E_ext_stem(tt, si1, -1, params);
             }
 
-            e = MIN2(e,en);
+            e = std::min(e,en);
             if(e == en){
                 d=1;
             }
@@ -254,7 +254,7 @@ energy_t E_ext_Stem(const energy_t& vij,const energy_t& vi1j,const energy_t& vij
 
                 en += vrna_E_ext_stem(tt, -1, sj1, params);
             }
-            e = MIN2(e,en);
+            e = std::min(e,en);
             if(e == en){
                 d=2;
             }
@@ -271,7 +271,7 @@ energy_t E_ext_Stem(const energy_t& vij,const energy_t& vi1j,const energy_t& vij
 
                 en += vrna_E_ext_stem(tt, si1, sj1, params);
             }
-            e = MIN2(e,en);
+            e = std::min(e,en);
             if(e == en){
                 d=3;
             }
@@ -352,7 +352,7 @@ energy_t E_MbLoop( const std::vector<energy_t>& dmli1, const std::vector<energy_
       
         		}
       		}
-      		e   = MIN2(e, en);
+      		e   = std::min(e, en);
 
 			/** 
 			* ML pair 3
@@ -367,7 +367,7 @@ energy_t E_MbLoop( const std::vector<energy_t>& dmli1, const std::vector<energy_
 					en += E_MLstem(tt, sj1, -1, params) + params->MLclosing + params->MLbase; 
 				}
 			}
-			e   = MIN2(e, en);
+			e   = std::min(e, en);
 			/** 
 			* ML pair 53
 			* new closing pair (i,j) with mb part [i+2.j-2]
@@ -383,7 +383,7 @@ energy_t E_MbLoop( const std::vector<energy_t>& dmli1, const std::vector<energy_
 					en += E_MLstem(tt, sj1, si1, params) + params->MLclosing + 2 * params->MLbase;
 				}
 			}
-			e   = MIN2(e, en);
+			e   = std::min(e, en);
       		break;
 		case 0:
 			if (pairable) {
@@ -427,7 +427,7 @@ energy_t E_MLStem(const energy_t& vij,const energy_t& vi1j,const energy_t& vij1,
 				en += E_MLstem(type, -1, -1, params);
 				d = 0;
 			}
-			e = MIN2(e, en);
+			e = std::min(e, en);
 		}
 	}
 	if(params->model_details.dangles == 1){
@@ -441,7 +441,7 @@ energy_t E_MLStem(const energy_t& vij,const energy_t& vi1j,const energy_t& vij1,
             	type = pair[S[i+1]][S[j]];
             	en += E_MLstem(type, mm5, -1, params);
 
-        		e = MIN2(e, en);
+        		e = std::min(e, en);
 				if(e == en){
 					d=1;
 				}
@@ -456,7 +456,7 @@ energy_t E_MLStem(const energy_t& vij,const energy_t& vi1j,const energy_t& vij1,
             	type = pair[S[i]][S[j-1]];
             	en += E_MLstem(type, -1, mm3, params);
  
-        		e = MIN2(e, en);
+        		e = std::min(e, en);
 				if(e == en){
 					d=2;
 				}
@@ -470,7 +470,7 @@ energy_t E_MLStem(const energy_t& vij,const energy_t& vi1j,const energy_t& vij1,
         		type = pair[S[i+1]][S[j-1]];
         		en += E_MLstem(type, mm5, mm3, params);
         
-				e = MIN2(e, en);
+				e = std::min(e, en);
 				if(e == en){
 					d=3;
 				}

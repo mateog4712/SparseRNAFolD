@@ -8,7 +8,7 @@
  * The results are equivalent to RNAfold.
  */
 #define NDEBUG
-#define debug 1
+#define debug 0
 #include "base_types.hh"
 #include "cmdline.hh"
 #include "matrix.hh"

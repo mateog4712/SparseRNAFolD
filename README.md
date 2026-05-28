@@ -48,10 +48,13 @@ Read input file from cmdline; predict minimum free energy and optimum structure 
   -V, --version          Print version and exit
   -v, --verbose          Turn on verbose output
   -m, --mark-candidates  Represent candidate base pairs by square brackets
+  -i, --input-file       Give a path to an input file containing the sequence (and input structure if known)
   -r, --input-structure  Give a restricted structure as an input structure
   -d, --dangles=INT      How to treat \"dangling end\" energies for bases adjacent to helices in free ends and multi-loops (default=`2')
   -P, --paramFile        Read energy parameters from paramfile, instead of using the default parameter set.
       --noGC             Turn off garbage collection and related overhead
+      --noGU             Turn off G-U and U-G (and G-T and T-G) base pairing (default=off)"
+      --noConv           Do not convert DNA into RNA. This will use the Matthews 2004 parameters for DNA (default=off)
 ```
 
 Remarks:

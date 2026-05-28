@@ -1,0 +1,4 @@
+The files cmdline.hh and cmdline.cc should not be edited but generated from cparty.ggo
+
+gengetopt --input=SparseRNAFolD.ggo --c-extension=cc --header-extension=hh --arg-struct-name=args_info
+

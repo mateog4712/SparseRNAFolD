@@ -20,6 +20,7 @@
 #include <iterator>
 #include <sstream>
 #include <string>
+#include <fstream>
 #include <sys/stat.h>
 #include <vector>
 
@@ -1203,18 +1204,30 @@ cand_pos_t capacity_of_candidates(const std::vector<cand_list_t> &CL_) {
     return c;
 }
 void seqtoRNA(std::string &sequence) {
-    bool DNA = false;
     for (char &c : sequence) {
-        if (c == 'T' || c == 't') {
-            c = 'U';
-            DNA = true;
-        }
+        if (c == 'T') c = 'U';
     }
-    noGU = DNA;
 }
 bool exists(const std::string path) {
     struct stat buffer;
     return (stat(path.c_str(), &buffer) == 0);
+}
+
+void get_input(std::string file, std::string &sequence, std::string &structure) {
+    if (!exists(file)) {
+        std::cout << "Input file does not exist" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    std::ifstream in(file.c_str());
+    std::string str;
+    cand_pos_t i = 0;
+    while (getline(in, str)) {
+        if (str[0] == '>') continue;
+        if (i == 0) sequence = str;
+        if (i == 1) structure = str;
+        ++i;
+    }
+    in.close();
 }
 
 /**
@@ -1239,45 +1252,60 @@ int main(int argc, char **argv) {
         std::getline(std::cin, seq);
     }
     cand_pos_t n = seq.length();
+    std::string restricted = args_info.input_structure_given ? args_info.input_structure_arg: "";
 
-    std::string restricted;
-    args_info.input_structure_given ? restricted = input_structure : restricted = std::string(n, '.');
+    if (restricted == "") restricted = std::string(n, '.');
 
-    if (restricted != "" && (cand_pos_t)restricted.length() != n) {
+    std::string fileI = args_info.input_file_given ? args_info.input_file_arg : "";
+
+    if (fileI != "") {
+
+        if (exists(fileI)) {
+            get_input(fileI, seq, restricted);
+        }
+        if (seq == "") {
+            std::cout << "sequence is missing from file" << std::endl;
+        }
+    }
+    std::transform(seq.begin(), seq.end(), seq.begin(), ::toupper);
+    if (!args_info.noConv_given) seqtoRNA(seq);
+    if (restricted == "") restricted = std::string(n, '.');
+
+    if (restricted.length() != (cand_pos_tu)n) {
         std::cout << "input sequence and structure are not the same size" << std::endl;
+        std::cout << seq << std::endl;
+        std::cout << restricted << std::endl;
         exit(0);
     }
 
-    std::string file = args_info.paramFile_given ? parameter_file : "params/rna_DirksPierce09.par";
-    if (exists(file)) {
-        vrna_params_load(file.c_str(), VRNA_PARAMETER_FORMAT_DEFAULT);
+    if(args_info.paramFile_given){
+        std::string file = args_info.paramFile_arg;
+        if (exists(file)) vrna_params_load(file.c_str(), VRNA_PARAMETER_FORMAT_DEFAULT);
+    } else {
+        if (seq.find('T') != std::string::npos) {
+            vrna_params_load_DNA_Mathews2004();
+        } else{
+            std::string file = "params/rna_DirksPierce09.par";
+            if (exists(file)) vrna_params_load(file.c_str(), VRNA_PARAMETER_FORMAT_DEFAULT);
+        }
     }
-
-    bool verbose = args_info.verbose_given;
-
-    bool mark_candidates = args_info.mark_candidates_given;
-
-    noGU = args_info.noGU_given;
-
-    seqtoRNA(seq);
-
+    noGU = args_info.noGU_flag;
     SparseRNAFolD FolD(seq, !args_info.noGC_given, restricted);
+    
 
-    if (args_info.dangles_given) FolD.params_->model_details.dangles = dangle_model;
-
-    cmdline_parser_free(&args_info);
+    if (args_info.dangles_given) FolD.params_->model_details.dangles = args_info.dangles_arg;
 
     detect_restricted_pairs(FolD);
 
     energy_t mfe = fold(FolD, FolD.garbage_collect_);
-    trace_back(FolD, mark_candidates);
+    trace_back(FolD, args_info.mark_candidates_flag);
 
     std::ostringstream smfe;
     smfe << std::setiosflags(std::ios::fixed) << std::setprecision(2) << mfe / 100.0;
 
     std::cout << seq << std::endl;
     std::cout << FolD.structure_ << " (" << smfe.str() << ")" << std::endl;
-    if (verbose) {
+    if (args_info.verbose_flag) {
 
         std::cout << std::endl;
 
@@ -1292,6 +1320,7 @@ int main(int argc, char **argv) {
         std::cout << "TAs num:\t" << sizeT(FolD.ta_) << std::endl;
         std::cout << "TAs cap:\t" << capacityT(FolD.ta_) << std::endl;
     }
+    cmdline_parser_free(&args_info);
 
     return 0;
 }

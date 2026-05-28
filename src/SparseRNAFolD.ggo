@@ -1,0 +1,49 @@
+package "SparseRNAFolD"
+version "1.0"
+args "--unamed-opts=input"
+
+purpose "Time- and space-efficient sparsified minimum free energy folding of RNAs"
+
+usage "SparseRNAFolD [options] [sequence]"
+
+description  "Read RNA sequence from stdin or cmdline; predict minimum\nfree energy and optimum structure using the time- and space-efficient\nMFE RNA folding algorithm of Gray, Will, and Jabbari (2023). The results are\nequivalent to RNAfold, but the computation takes less time (for\nlong sequences) and much less space."
+
+# Options
+
+option "input-structure" r
+    "Give a restricted structure as an input structure"
+    string optional
+
+option "input-file" i
+    "Give a path to an input file containing the sequence (and input structure if known)"
+    string optional
+
+option "mark-candidates" m
+    "Represent candidate base pairs by curly brackets"
+    flag off
+
+option "verbose" v
+    "Turn on verbose output"
+    flag off
+
+option "dangles" d
+    "Specify the dangle model to be used (base is 2)"
+    int default="2" optional
+
+option "paramFile" P
+    "Read energy parameters from paramfile, instead of using the default parameter set."
+    string optional
+
+option "noConv" -
+    "Do not convert DNA into RNA. This will use the Matthews 2004 parameters for DNA"
+    flag off
+
+option "noGU" -
+    "Turn off G-U and U-G (and G-T and T-G) base pairing"
+    flag off
+
+option "noGC" -
+    "Turn off garbage collection and related overhead"
+    flag off
+
+text "\nThe input sequence is read from standard input, unless it is\ngiven on the command line.\n"

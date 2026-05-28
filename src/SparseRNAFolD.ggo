@@ -36,7 +36,7 @@ option "paramFile" P
 
 option "noConv" -
     "Do not convert DNA into RNA. This will use the Matthews 2004 parameters for DNA"
-    flag off
+    flag on
 
 option "noGU" -
     "Turn off G-U and U-G (and G-T and T-G) base pairing"

@@ -1268,7 +1268,7 @@ int main(int argc, char **argv) {
         }
     }
     std::transform(seq.begin(), seq.end(), seq.begin(), ::toupper);
-    if (!args_info.noConv_given) seqtoRNA(seq);
+    if (args_info.noConv_flag) seqtoRNA(seq);
     if (restricted == "") restricted = std::string(n, '.');
 
     if (restricted.length() != (cand_pos_tu)n) {

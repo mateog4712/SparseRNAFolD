@@ -42,7 +42,7 @@ const char *args_info_help[] = {
   "  -v, --verbose                 Turn on verbose output  (default=off)",
   "  -d, --dangles=INT             Specify the dangle model to be used (base is 2)\n                                  (default=`2')",
   "  -P, --paramFile=STRING        Read energy parameters from paramfile, instead\n                                  of using the default parameter set.",
-  "      --noConv                  Do not convert DNA into RNA. This will use the\n                                  Matthews 2004 parameters for DNA\n                                  (default=off)",
+  "      --noConv                  Do not convert DNA into RNA. This will use the\n                                  Matthews 2004 parameters for DNA\n                                  (default=on)",
   "      --noGU                    Turn off G-U and U-G (and G-T and T-G) base\n                                  pairing  (default=off)",
   "      --noGC                    Turn off garbage collection and related\n                                  overhead  (default=off)",
   "\nThe input sequence is read from standard input, unless it is\ngiven on the command line.\n",
@@ -98,7 +98,7 @@ void clear_args (struct args_info *args_info)
   args_info->dangles_orig = NULL;
   args_info->paramFile_arg = NULL;
   args_info->paramFile_orig = NULL;
-  args_info->noConv_flag = 0;
+  args_info->noConv_flag = 1;
   args_info->noGU_flag = 0;
   args_info->noGC_flag = 0;
   
